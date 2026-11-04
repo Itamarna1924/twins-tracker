@@ -1,0 +1,26 @@
+rules_version = '2';
+// Template. The live rules (with the owner's email filled in) are set in the Firebase console.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null && request.auth.token.email_verified == true; }
+    function email() { return request.auth.token.email.lower(); }
+    function isOwner() { return signedIn() && email() == 'OWNER_EMAIL'; }
+    function membersPath() { return /databases/$(database)/documents/meta/members; }
+    function members() { return get(membersPath()).data; }
+    function isEditor() { return isOwner() || (signedIn() && exists(membersPath()) && email() in members().editors); }
+    function isMember() { return isEditor() || (signedIn() && exists(membersPath()) && email() in members().viewers); }
+
+    match /meta/members { allow read: if isMember(); allow write: if isOwner(); }
+    match /meta/notified { allow read, write: if false; }  // only the reminder job (admin) uses this
+    match /people/{uid} { allow read: if isMember(); allow write: if isMember() && request.auth.uid == uid; }
+    match /tokens/{token} {
+      allow create, update: if isMember() && request.resource.data.uid == request.auth.uid;
+      allow read, delete: if isMember() && resource.data.uid == request.auth.uid;
+    }
+    match /data/users/{uid}/{rest=**} { allow read, write: if isMember() && request.auth.uid == uid; }
+    match /{coll}/{docId} {
+      allow read: if isMember() && !(coll in ['meta', 'tokens', 'data']);
+      allow write: if isEditor() && !(coll in ['meta', 'tokens', 'data', 'people']);
+    }
+  }
+}
