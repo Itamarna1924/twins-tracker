@@ -26,7 +26,7 @@ jobs:
       - run: node notifier/notify.mjs
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          APP_URL: ${{ vars.APP_URL }}
+          APP_URL: ${{ vars.APP_URL || 'https://itamarna1924.github.io/twins-tracker/' }}
       # GitHub pauses scheduled workflows after 60 days without commits; an empty commit every ~40 days keeps reminders running.
       - name: Keep schedule alive
         if: github.event_name == 'schedule'
