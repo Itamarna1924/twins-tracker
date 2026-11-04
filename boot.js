@@ -18,7 +18,11 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').then(r => { swReg = r; }).catch(() => {});
 }
 let installEvt = null;
-window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); installEvt = e;
+  const b = document.querySelector('#installBtn'); if (b) b.hidden = false;
+});
+window.addEventListener('appinstalled', () => { installEvt = null; const b = document.querySelector('#installBtn'); if (b) b.hidden = true; });
 
 const $ = s => document.querySelector(s);
 const gate = (msg, { signin = false, signout = false } = {}) => {
@@ -138,6 +142,7 @@ $('#signinBtn').onclick = async () => {
   }
 };
 $('#signoutBtn').onclick = () => window.TT.signOut();
+$('#installBtn').onclick = () => window.TT.install();
 getRedirectResult(auth).catch(() => {});
 
 async function resolveRole(u) {
