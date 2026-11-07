@@ -11,8 +11,8 @@
   "background_color": "#FFF1E6",
   "theme_color": "#FFF1E6",
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "icons/drops-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/drops-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/drops-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

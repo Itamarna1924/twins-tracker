@@ -253,73 +253,48 @@ function syncDrops(){
   window.Drops.sync(st);
 }
 
-/* ---------- Report: the same numbers, as water ---------- */
-function gaugesHtml(from,to){
-  const W=358, span=Math.max(1,to-from), X=t=>Math.max(0,Math.min(W,(t-from)/span*W));
-  const ticks=[0,.25,.5,.75,1].map((f,i)=>({x:f*W, l:hhmm(from+f*span), a:i===0?'start':i===4?'end':'middle'}));
+/* ---------- summary: the same story as the drops, told in pictures ---------- */
+function sumCard(icon, title, sub, body){ return `<section class="scard"><div class="sc-hd"><span class="sc-ic">${pic(icon,22)}</span><b>${title}</b>${sub?`<span>${sub}</span>`:''}</div>${body}</section>`; }
+function sumTrack(from,to){
+  const span=Math.max(1,to-from), P=t=>Math.max(0,Math.min(100,(t-from)/span*100));
   const nights=[]; { const s=new Date(from); s.setHours(19,0,0,0); s.setDate(s.getDate()-1);
-    for(let t=s.getTime(); t<to; t+=D){ const a=Math.max(t,from), b=Math.min(t+12*H,to); if(b>a) nights.push([X(a),X(b)]); } }
-  const tick=y=>ticks.map(t=>`<text x="${t.x}" y="${y}" text-anchor="${t.a}">${t.l}</text>`).join('');
-  // tide: sleep, A above the line, B below
-  const sl=k=>ofBaby(k).filter(e=>e.type==='sleep'&&(e.end||Date.now())>from&&e.t<to);
-  const band=(k,up)=>sl(k).map(e=>{ const x1=X(e.t), x2=X(e.end||Date.now()); const w=Math.max(1.5,x2-x1); return up?`M${x1} 92 V14 Q${x1+w/2} 6 ${x1+w} 14 V92 Z`:`M${x1} 92 V170 Q${x1+w/2} 178 ${x1+w} 170 V92 Z`; }).join(' ');
-  const A=stats('a',from,to), B=stats('b',from,to);
-  let h=`<section><div class="gauge-h"><b>גאות ושפל</b><span>שינה</span></div>
-    <div class="big2"><div class="a"><div class="n">${hm(A.sleepDay+A.sleepNight)}</div><small>${esc(nm('a'))} · לילה ${hm(A.sleepNight)}</small></div><div class="b"><div class="n">${hm(B.sleepDay+B.sleepNight)}</div><small>${esc(nm('b'))} · לילה ${hm(B.sleepNight)}</small></div></div>
-    <svg class="gauge" viewBox="0 0 ${W} 200" role="img" aria-label="שינה לאורך הזמן: ${esc(nm('a'))} מעל הקו, ${esc(nm('b'))} מתחתיו">
-      ${nights.map(([a,b])=>`<rect x="${a}" y="0" width="${b-a}" height="184" style="fill:var(--surface-2)"/>`).join('')}
-      <path d="${band('a',true)}" style="fill:var(--a)"/><path d="${band('b',false)}" style="fill:var(--b)"/>
-      <line x1="0" x2="${W}" y1="92" y2="92" style="stroke:var(--fg);stroke-opacity:.3"/>
-      ${ticks.map(t=>`<line x1="${t.x}" x2="${t.x}" y1="184" y2="190" style="stroke:var(--fg)"/>`).join('')}${tick(200)}
-    </svg></section>`;
-  // drip: feeds
+    for(let t=s.getTime(); t<to; t+=D){ const a=Math.max(t,from), b=Math.min(t+12*H,to); if(b>a) nights.push([P(a),P(b)]); } }
+  const ticks=[0,.25,.5,.75,1].map(f=>`<span style="inset-inline-start:${f*100}%">${hhmm(from+f*span)}</span>`).join('');
+  return {P, nightBg:nights.map(([a,b])=>`<i class="nt" style="inset-inline-start:${a}%;width:${b-a}%"></i>`).join(''), ticks:`<div class="tk">${ticks}</div>`};
+}
+function sumCards(from,to){
+  const now=Date.now(), {P,nightBg,ticks}=sumTrack(from,to), A=stats('a',from,to), B=stats('b',from,to);
+  const nmA=esc(nm('a')), nmB=esc(nm('b'));
+  const hours=ms=>ms?hm(ms).replace(/^0/,''):'0:00';
+  // sleep: one strip per twin, every sleep a soft capsule
+  const strip=k=>{ const caps=ofBaby(k).filter(e=>e.type==='sleep'&&(e.end||now)>from&&e.t<to).map(e=>{ const a=P(e.t), b=P(e.end||now); return `<i class="cap ${k}" style="inset-inline-start:${a}%;width:${Math.max(1.5,b-a)}%"></i>`; }).join('');
+    return `<div class="strip">${nightBg}${caps}</div>`; };
+  let h=sumCard('moon','שינה','',`
+    <div class="duo2"><div class="who a"><b>${hours(A.sleepDay+A.sleepNight)}</b><span>${nmA} · מתוכן בלילה ${hours(A.sleepNight)}</span></div><div class="who b"><b>${hours(B.sleepDay+B.sleepNight)}</b><span>${nmB} · מתוכן בלילה ${hours(B.sleepNight)}</span></div></div>
+    <div class="rows"><div class="rw"><span class="tag2 a">${nmA}</span>${strip('a')}</div><div class="rw"><span class="tag2 b">${nmB}</span>${strip('b')}</div>${ticks}</div>
+    <p class="cap-note">רקע כהה = שעות הלילה</p>`);
+  // feeds: every feed is a drop on the line
   const fd=k=>ofBaby(k).filter(e=>e.type==='feed'&&e.t>=from&&e.t<to).sort((x,y)=>x.t-y.t);
   const fa=fd('a'), fb=fd('b');
-  const gap=xs=>xs.length<2?'—':hm((xs[xs.length-1].t-xs[0].t)/(xs.length-1));
-  const drops=(xs,y,k)=>xs.map(e=>`<path transform="translate(${X(e.t)} ${y})" d="${SMALL}" style="fill:var(--${k})"/>`).join('');
-  h+=`<section style="padding-top:22px"><div class="gauge-h"><b>טפטוף</b><span>האכלות</span></div>
-    <svg class="gauge" viewBox="0 0 ${W} 104" role="img" aria-label="האכלות: ${esc(nm('a'))} ${fa.length}, ${esc(nm('b'))} ${fb.length}">
-      <line x1="0" x2="${W}" y1="34" y2="34" style="stroke:var(--fg);stroke-opacity:.25"/><line x1="0" x2="${W}" y1="80" y2="80" style="stroke:var(--fg);stroke-opacity:.25"/>
-      ${drops(fa,28,'a')}${drops(fb,74,'b')}${tick(102)}
-    </svg>
-    <div class="two" style="font-size:13px;margin-top:8px"><span><b class="mono">${fa.length}</b> טיפות · מרווח <span class="mono">${gap(fa)}</span></span><span style="text-align:left"><b class="mono">${fb.length}</b> טיפות · מרווח <span class="mono">${gap(fb)}</span></span></div></section>`;
-  // rain gauge: diapers
-  const th=+(cfg.th?.wet||6), full=span>=23*H;
-  const mx=Math.max(8, A.wet, B.wet, A.dirty, B.dirty, full?th:0);
-  const RY=v=>190-v/mx*180;
-  const col=(x,v,k,fill)=>`<rect x="${x}" y="${RY(v)}" width="22" height="${190-RY(v)}" style="${fill?`fill:var(--${k})`:`fill:none;stroke:var(--${k});stroke-width:1.2`}"/>`;
-  const leaks=['a','b'].filter(k=>{ const d=lastOf(k,'diaper'); return d && Date.now()-d.t>4*H; });
-  h+=`<section style="padding-top:22px"><div class="gauge-h"><b>מד גשם</b><span>חיתולים</span></div>
-    <div class="rain"><svg class="gauge" viewBox="0 0 150 200" role="img" aria-label="${esc(nm('a'))} ${A.wet} רטובים ו־${A.dirty} קקי, ${esc(nm('b'))} ${B.wet} רטובים ו־${B.dirty} קקי">
-      ${[0,.25,.5,.75,1].map(f=>{ const v=Math.round(mx*f); return `<line x1="22" x2="30" y1="${RY(v)}" y2="${RY(v)}" style="stroke:var(--fg)"/><text x="16" y="${RY(v)+3}" text-anchor="end">${v}</text>`; }).join('')}
-      ${col(40,A.wet,'a',true)}${col(66,A.dirty,'a',false)}${col(92,B.wet,'b',true)}${col(118,B.dirty,'b',false)}
-      ${full?`<line x1="30" x2="146" y1="${RY(th)}" y2="${RY(th)}" style="stroke:var(--fg);stroke-dasharray:2 3"/>`:''}
-      <line x1="30" x2="146" y1="190" y2="190" style="stroke:var(--fg)"/>
-    </svg><div style="display:flex;flex-direction:column;gap:8px">
-      <div><span style="display:inline-block;width:10px;height:10px;background:var(--fg);vertical-align:middle"></span> רטוב &nbsp; <span style="display:inline-block;width:10px;height:10px;border:1px solid var(--fg);vertical-align:middle"></span> קקי</div>
-      <div><span style="color:var(--a)">${esc(nm('a'))}</span> <span class="mono">${A.wet}/${A.dirty}</span> · <span style="color:var(--b)">${esc(nm('b'))}</span> <span class="mono">${B.wet}/${B.dirty}</span></div>
-      ${full?`<div>קו מקווקו: ${th} רטובים ביממה.</div>`:'<div class="note">קו הסף מוצג בחלונות של 24 שעות.</div>'}
-      ${leaks.length?`<div style="border-top:1px solid var(--hair);padding-top:8px"><b>דליפה.</b> ${leaks.map(k=>`${esc(nm(k))}: ${hm(Date.now()-lastOf(k,'diaper').t)} מהחיתול האחרון`).join(' · ')}.</div>`:''}
-    </div></div></section>`;
+  const gap=xs=>xs.length<2?null:hm((xs[xs.length-1].t-xs[0].t)/(xs.length-1)).replace(/^0/,'');
+  const dots=(xs,k)=>`<div class="strip line">${xs.map(e=>`<i class="dp ${k}" style="inset-inline-start:${P(e.t)}%" title="${hhmm(e.t)}">${pic(e.side==='bottle'?'bottle':'drop',16)}</i>`).join('')}</div>`;
+  const feedTxt=(xs)=>xs.length?`${xs.length} האכלות${gap(xs)?` · בערך כל ${gap(xs)}`:''}`:'אין האכלות';
+  h+=sumCard('bottle','האכלות','',`
+    <div class="duo2"><div class="who a"><b>${fa.length}</b><span>${nmA} · ${feedTxt(fa)}</span></div><div class="who b"><b>${fb.length}</b><span>${nmB} · ${feedTxt(fb)}</span></div></div>
+    <div class="rows"><div class="rw"><span class="tag2 a">${nmA}</span>${dots(fa,'a')}</div><div class="rw"><span class="tag2 b">${nmB}</span>${dots(fb,'b')}</div>${ticks}</div>`);
+  // diapers: count them as little pictures
+  const th=+(cfg.th?.wet||6), full=to-from>=23*H;
+  const icons=(n,ic,k)=>n?Array.from({length:Math.min(n,14)},()=>`<i class="pc ${k}">${pic(ic,20)}</i>`).join('')+(n>14?`<em>+${n-14}</em>`:''):'<em>—</em>';
+  const dRow=(k,S)=>`<div class="drow"><span class="tag2 ${k}">${esc(nm(k))}</span><div class="pics"><div>${icons(S.wet,'wet',k)}</div><div>${icons(S.dirty,'poop',k)}</div></div><b class="n ${k}">${S.wet}<small>/${S.dirty}</small></b></div>`;
+  const late=['a','b'].filter(k=>{ const d=lastOf(k,'diaper'); return d && now-d.t>4*H; });
+  h+=sumCard('diaper','חיתולים',full?`יעד: ${th} רטובים ביממה`:'',`
+    <div class="legend">${pic('wet',16)} רטוב &nbsp; ${pic('poop',16)} קקי</div>
+    ${dRow('a',A)}${dRow('b',B)}
+    ${full?['a','b'].filter(k=>(k==='a'?A:B).wet<th).map(k=>`<p class="soft-warn">${esc(nm(k))}: ${(k==='a'?A:B).wet} רטובים מתוך ${th}. אם זה ממשיך, כדאי לבדוק מול רופא הילדים.</p>`).join(''):''}
+    ${late.map(k=>`<p class="soft-warn">${esc(nm(k))}: ${hm(now-lastOf(k,'diaper').t).replace(/^0/,'')} מהחיתול האחרון.</p>`).join('')}`);
   return h;
 }
 
-function syncHint(){
-  const now=Date.now();
-  for(const [k,o] of [['a','b'],['b','a']]){
-    const fk=lastOf(k,'feed'); const fo=lastOf(o,'feed');
-    const kFeeding = timers[k] || (fk && now-fk.t<20*M);
-    if(kFeeding && !timers[o] && (!fo || now-fo.t>2*H) && openSleep(o))
-      return `<b>סנכרון שגרות:</b> ${esc(nm(k))} אוכל/ת עכשיו, ו${esc(nm(o))} לא אכל/ה ${fo?dur(now-fo.t):'מאז תחילת הרישום'}. אפשר להעיר להאכלה משותפת.`;
-  }
-  return '';
-}
-function itemHtml(e){
-  const who=whoTxt(e.by);
-  return `<button class="item" data-id="${e.id}"><span class="time tn">${hhmm(e.t)}</span>
-    <span class="what"><b>${label(e)}</b><span class="sub tn">${esc([summary(e),who].filter(Boolean).join(' · '))}</span></span>
-    <span class="tag ${e.baby}">${esc(nm(e.baby))}</span></button>`;
-}
 /* ---------- picture vocabulary shared by the journal, summary and edit sheets ---------- */
 const PIC = {
   bottle:'<path d="M9 2.5h6M10 2.5v2.8L7.8 8.2V19a2.5 2.5 0 0 0 2.5 2.5h3.4A2.5 2.5 0 0 0 16.2 19V8.2L14 5.3V2.5"/><path d="M7.8 12.5h8.4"/>',
@@ -416,7 +391,7 @@ function mirrorRows(A,B){
 
 function sumWindow(){
   const now=Date.now(), d0=new Date(); d0.setHours(0,0,0,0);
-  if(sumMode==='night'){ const s=new Date(); if(s.getHours()<12){ s.setDate(s.getDate()-1);} s.setHours(22,0,0,0); const e=new Date(s); e.setDate(e.getDate()+1); e.setHours(7,0,0,0); return [s.getTime(), Math.min(e.getTime(),now), 'לילה אחרון, 22:00–07:00']; }
+  if(sumMode==='night'){ const s=new Date(); if(s.getHours()<12){ s.setDate(s.getDate()-1);} s.setHours(22,0,0,0); const e=new Date(s); e.setDate(e.getDate()+1); e.setHours(7,0,0,0); return [s.getTime(), Math.min(e.getTime(),now), 'הלילה האחרון']; }
   if(sumMode==='12') return [now-12*H, now, '12 השעות האחרונות'];
   if(sumMode==='24') return [now-24*H, now, '24 השעות האחרונות'];
   if(sumMode==='today') return [d0.getTime(), now, 'היום מחצות'];
@@ -427,9 +402,9 @@ function viewSummary(){
   const A=stats('a',from,to), B=stats('b',from,to);
   const rows=[['האכלות',x=>x.feeds],['דקות הנקה',x=>x.nurseMin||'—'],['בקבוק (מ״ל ששתה)',x=>x.ml||'—'],['חיתולים רטובים',x=>x.wet],['חיתולי קקי',x=>x.dirty],['סך חיתולים',x=>x.diapers],['שינת יום',x=>x.sleepDay?dur(x.sleepDay):'—'],['שינת לילה',x=>x.sleepNight?dur(x.sleepNight):'—'],['התעוררויות',x=>x.wakings||'—'],['תרופות שניתנו',x=>x.meds||'—']];
   let h=`<div class="wrap" style="gap:12px"><div class="duel-h"><h2>סיכום</h2></div>
-    <div class="chips" role="group">${[['night','מה היה בלילה'],['12','12 ש׳'],['24','24 ש׳'],['today','היום'],['yest','אתמול']].map(([v,l])=>`<button class="chip" data-sum="${v}" aria-pressed="${sumMode===v}">${l}</button>`).join('')}</div>
+    <div class="picchips" role="group" aria-label="איזה זמן">${[['night','הלילה','moon'],['12','12 שעות','sun'],['24','יממה','all'],['today','היום','sun'],['yest','אתמול','doc']].map(([v,l,i])=>`<button data-sum="${v}" aria-pressed="${sumMode===v}">${pic(i,20)}<span>${l}</span></button>`).join('')}</div>
     <p class="note">${lbl}${to<from?'':' · '+hhmm(from)+'–'+hhmm(to)}</p>
-    ${gaugesHtml(from,to)}
+    ${sumCards(from,to)}
     <h3 class="sec">זה מול זה</h3>
     <div class="lanes-hd"><span class="lh a">${esc(nm('a'))}</span><span class="lh mid"></span><span class="lh b">${esc(nm('b'))}</span></div>
     ${mirrorRows(A,B)}`;

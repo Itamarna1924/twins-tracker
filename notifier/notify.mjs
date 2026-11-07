@@ -31,7 +31,7 @@ if (due.length && tokens.length) {
       tokens,
       notification: { title: r.title, body: r.body },
       webpush: {
-        notification: { icon: APP_URL + 'icons/icon-192.png', badge: APP_URL + 'icons/icon-192.png', tag: r.tag, renotify: true,
+        notification: { icon: APP_URL + 'icons/drops-192.png', badge: APP_URL + 'icons/drops-192.png', tag: r.tag, renotify: true,
           requireInteraction: !!r.urgent, dir: 'rtl', lang: 'he' },
         ...(APP_URL.startsWith('https://') ? { fcmOptions: { link: APP_URL } } : {}),
         headers: { Urgency: r.urgent ? 'high' : 'normal', TTL: '3600' },
