@@ -398,6 +398,19 @@ function effect(a,k,isBoth,ids){
     renderCtl();
   }
 }
+/* both: the drops melt into one drop, then part again */
+function merge(after){
+  K.forEach(k=>hold(k,2600));
+  const tl=gsap.timeline();
+  tl.to(C.a,{x:226,duration:.55,ease:'power2.in'},0).to(C.b,{x:174,duration:.55,ease:'power2.in'},0)
+    .to([C.a,C.b],{fo:0,duration:.2},.35)
+    .to([C.a,C.b],{sy:1.12,sx:1.06,duration:.25},.55)
+    .add(()=>{ heart(200,40,1.4); splash('a',.6,'#9C8CF0'); },.6)
+    .to([C.a,C.b],{sy:1,sx:1,duration:.3},.85)
+    .to(C.a,{x:homeX.a,duration:.9,ease:'elastic.out(1,.5)'},1.25).to(C.b,{x:homeX.b,duration:.9,ease:'elastic.out(1,.5)'},1.25)
+    .to([C.a,C.b],{fo:1,duration:.25},1.35)
+    .add(after,1.45);
+}
 function stopNurse(k){ const s=S[k]; if(!s.nurse) return; s.feed=s.nurse.t; s.nurse=null; renderCtl(); rest(k); api.nurseStop(k); FX.full(k); }
 
 /* ---------- sheets: details by picture, each choice moves the drops ---------- */
