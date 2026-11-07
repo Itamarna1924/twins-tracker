@@ -482,9 +482,9 @@ function openBottle(k,id){
         <div class="ml"><span id="dMlv">${ml}</span> <small>מ״ל</small></div>
         <div class="hint">גוררים את החלב בבקבוק למעלה או למטה</div>
         <div class="qchips">${last?`<button data-ml="${last}">כמו בפעם הקודמת · ${last}</button>`:''}<button data-ml="60">60</button><button data-ml="90">90</button><button data-ml="120">120</button></div>
-        <div class="tiles" style="--n:2"><button class="tile" aria-pressed="true" data-milk="pumped" style="min-height:70px">${ico('pumped')}חלב אם</button><button class="tile" data-milk="formula" style="min-height:70px" aria-pressed="false">${ico('formula')}תמ״ל</button></div>
       </div>
     </div>
+    <div class="tiles milkt" style="--n:2"><button class="tile" aria-pressed="true" data-milk="pumped" style="min-height:64px;flex-direction:row;gap:10px">${ico('pumped')}חלב אם</button><button class="tile" data-milk="formula" style="min-height:64px;flex-direction:row;gap:10px" aria-pressed="false">${ico('formula')}תמ״ל</button></div>
     <button class="save" data-save>שמירה</button>`, s=>{
     const svg=s.querySelector('#dBtl'), lv=s.querySelector('#dMilkLv');
     const set=v=>{ ml=Math.max(0,Math.min(MAX,Math.round(v/5)*5)); s.querySelector('#dMlv').textContent=ml; svg.setAttribute('aria-valuenow',ml); gsap.to(lv,{y:levelY(ml),duration:.25,ease:'power2.out'}); };
@@ -497,7 +497,7 @@ function openBottle(k,id){
     svg.addEventListener('pointerup',()=>drag=false);
     svg.addEventListener('keydown',e=>{ if(e.key==='ArrowUp'){ set(ml+5); e.preventDefault(); } if(e.key==='ArrowDown'){ set(ml-5); e.preventDefault(); } });
     s.querySelectorAll('[data-ml]').forEach(b=>b.onclick=()=>set(+b.dataset.ml));
-    let milkType='pumped'; pressGroup(s,'.bottle .tiles .tile',b=>{ milkType=b.dataset.milk; });
+    let milkType='pumped'; pressGroup(s,'.milkt .tile',b=>{ milkType=b.dataset.milk; });
     s.querySelector('[data-x]').onclick=closeSheet;
     s.querySelector('[data-save]').onclick=()=>{ api.patch(id,{side:'bottle',ml,milk:milkType}); closeSheet(); busy[k]=0; FX.bottle(k,ml,milkType==='formula'); toast(`בקבוק ${ml} מ״ל · ${S[k].name}`); };
   });

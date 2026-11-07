@@ -118,3 +118,10 @@
 .drops .al small{display:none}
 .drops .alerts.open .al{white-space:normal} .drops .alerts.open .al small{display:block}
 .drops .al.urgent{white-space:normal}
+
+.drops .bottle{grid-template-columns:120px minmax(0,1fr)}
+.drops .bottle svg{width:120px;height:206px}
+.drops .qchips button{white-space:nowrap}
+.drops .milkt .tile svg{width:32px;height:32px}
+.drops .tiles{grid-template-columns:repeat(var(--n,3),minmax(0,1fr))}
+.drops .dsheet,.drops .stage{user-select:none;-webkit-user-select:none}
