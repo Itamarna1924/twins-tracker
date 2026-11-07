@@ -68,8 +68,8 @@ function buildFace(k){
     : '<g transform="translate(-24 -118) rotate(-18)"><path d="M0 0 L-16 -9 L-16 9 Z M0 0 L16 -9 L16 9 Z" fill="#FFF" stroke="#FFD7CB" stroke-width="1.5" stroke-linejoin="round"/><circle r="4.5" fill="#FFE3DA"/></g>';
   f.innerHTML=`
    <ellipse cx="6" cy="-24" rx="34" ry="15" fill="#fff" opacity=".16"/>
-   <path d="M-44 -66 Q-47 -92 -24 -122" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity=".55"/>
-   <circle cx="-14" cy="-136" r="3.6" fill="#fff" opacity=".8"/>
+   <ellipse cx="-31" cy="-88" rx="8" ry="17" transform="rotate(32 -31 -88)" fill="#fff" opacity=".55"/>
+   
 
    ${top}
    <g class="cheeks" id="ck${k}"><ellipse cx="-36" cy="-45" rx="10" ry="6" fill="var(--cheek)" opacity="${k==='a'?.45:.5}"/><ellipse cx="36" cy="-45" rx="10" ry="6" fill="var(--cheek)" opacity="${k==='a'?.45:.5}"/></g>

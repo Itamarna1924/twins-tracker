@@ -320,22 +320,100 @@ function itemHtml(e){
     <span class="what"><b>${label(e)}</b><span class="sub tn">${esc([summary(e),who].filter(Boolean).join(' · '))}</span></span>
     <span class="tag ${e.baby}">${esc(nm(e.baby))}</span></button>`;
 }
+/* ---------- picture vocabulary shared by the journal, summary and edit sheets ---------- */
+const PIC = {
+  bottle:'<path d="M9 2.5h6M10 2.5v2.8L7.8 8.2V19a2.5 2.5 0 0 0 2.5 2.5h3.4A2.5 2.5 0 0 0 16.2 19V8.2L14 5.3V2.5"/><path d="M7.8 12.5h8.4"/>',
+  nurse:'<path d="M12 21c-5-3.2-8.5-6.6-8.5-10.2A4.3 4.3 0 0 1 12 8.6a4.3 4.3 0 0 1 8.5 2.2C20.5 14.4 17 17.8 12 21z"/><circle cx="12" cy="13" r="1.6" fill="currentColor"/>',
+  diaper:'<path d="M3 7.5h18v2.8a9 9 0 0 1-18 0z"/><path d="M8 11c1.2 1.8 2.6 2.7 4 2.7s2.8-.9 4-2.7"/>',
+  moon:'<path d="M19.5 14.5A8 8 0 1 1 9.5 4.5a6.5 6.5 0 0 0 10 10z"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>',
+  wet:'<path d="M12 3C12 3 6 10 6 14a6 6 0 0 0 12 0C18 10 12 3 12 3Z"/>',
+  poop:'<path d="M7 19h10a3 3 0 0 0 .6-5.9A3 3 0 0 0 14.5 9a2.6 2.6 0 0 0-2.6-3.6c.4 1.2-.3 2.2-1.6 2.6A3 3 0 0 0 8.6 12a3.1 3.1 0 0 0-1.6 7z"/>',
+  both:'<path d="M9 4C9 4 4 10 4 13.5a5 5 0 0 0 10 0C14 10 9 4 9 4Z"/><path d="M16 9.5c.4-.4 4 3.7 4 6a4 4 0 0 1-7.4 2.1"/>',
+  dry:'<circle cx="12" cy="12" r="8"/><path d="M8 12h8"/>',
+  left:'<circle cx="12" cy="12" r="8.5"/><path d="M13.5 8.5 10 12l3.5 3.5"/>',
+  right:'<circle cx="12" cy="12" r="8.5"/><path d="M10.5 8.5 14 12l-3.5 3.5"/>',
+  crib:'<path d="M3 20V8M21 20V8M3 11h18M3 17h18M7 11v6M11 11v6M15 11v6M19 11v6"/>',
+  bassinet:'<path d="M3 11h18a9 9 0 0 1-18 0z"/><path d="M21 11c0-4-3-7-8-7"/><path d="M8 20l-1.5 2M16 20l1.5 2"/>',
+  arms:'<path d="M3 13c3 4 15 4 18 0"/><circle cx="12" cy="8" r="3.5"/>',
+  stroller:'<path d="M4 6h3l2 8h10l2-7"/><path d="M9 14a6 6 0 0 1-1-5h13"/><circle cx="9" cy="19" r="2"/><circle cx="18" cy="19" r="2"/>',
+  car:'<path d="M4 16V11l2-5h12l2 5v5z"/><circle cx="8" cy="17" r="2"/><circle cx="16" cy="17" r="2"/>',
+  bed:'<path d="M3 18V7M3 13h18v5M7 13V10h6v3"/>',
+  burp:'<circle cx="9" cy="14" r="5"/><circle cx="16.5" cy="7" r="3"/><circle cx="19" cy="14" r="1.6"/>',
+  spit:'<path d="M12 4C12 4 8 9 8 12a4 4 0 0 0 8 0C16 9 12 4 12 4Z"/><path d="M4 18l2-1.5M20 18l-2-1.5M7 21.5l1.5-2M17 21.5l-1.5-2"/>',
+  formula:'<path d="M7 3h10v4H7zM6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1z"/><path d="M9 12h6"/>',
+  pumped:'<path d="M12 3C12 3 7 9 7 12.5a5 5 0 0 0 10 0C17 9 12 3 12 3Z"/><path d="M10 14.5c.6.8 1.3 1.2 2 1.2"/>',
+  pill:'<rect x="3" y="8.5" width="18" height="7" rx="3.5" transform="rotate(-35 12 12)"/><path d="M9.5 8.5l5 7"/>',
+  thermo:'<path d="M10 4a2 2 0 0 1 4 0v10a4 4 0 1 1-4 0z"/><path d="M12 9v6"/>',
+  note:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  star:'<path d="M12 3l2.6 5.6 6 .6-4.5 4 1.3 6-5.4-3.2-5.4 3.2 1.3-6-4.5-4 6-.6z"/>',
+  heart:'<path d="M12 20s-7.5-4.3-7.5-10A4.3 4.3 0 0 1 12 7.6 4.3 4.3 0 0 1 19.5 10c0 5.7-7.5 10-7.5 10z"/><path d="M12 10.5v5M9.5 13h5"/>',
+  spoon:'<ellipse cx="12" cy="7" rx="3.5" ry="4.5"/><path d="M12 11.5V21"/>',
+  home:'<path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-5h4v5"/>',
+  people:'<circle cx="8.5" cy="8" r="3"/><circle cx="16" cy="9" r="2.5"/><path d="M3 20a5.5 5.5 0 0 1 11 0M13.5 20a4.5 4.5 0 0 1 8 0"/>',
+  doc:'<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/>',
+  drop:'<path d="M12 3C12 3 6 10 6 14a6 6 0 0 0 12 0C18 10 12 3 12 3Z"/>',
+  all:'<circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="7" r="2.5"/><circle cx="7" cy="17" r="2.5"/><circle cx="17" cy="17" r="2.5"/>'
+};
+const pic = (k,size=24) => `<svg class="pic" viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${PIC[k]||PIC.drop}</svg>`;
+const OPT_PIC = {
+  side:{L:'left',R:'right',both:'nurse',bottle:'bottle'}, milk:{pumped:'pumped',formula:'formula',special:'formula',mixed:'both'},
+  kind:{wet:'wet',dirty:'poop',mixed:'both',dry:'dry'}, loc:{crib:'crib',bassinet:'bassinet',stroller:'stroller',arms:'arms',carrier:'arms',car:'car',bed:'bed'},
+  period:{day:'sun',night:'moon'}, flags:{burp:'burp',spit:'spit',vomit:'spit',distress:'heart'}, care:{tummy:'star',bath:'drop',nails:'star',cord:'heart',jaundice:'sun'},
+  where:{fridge:'home',freezer:'home',now:'bottle'}
+};
+/* one picture + a few words for every kind of record */
+function evPic(e){
+  if(e.type==='feed') return e.side==='bottle'?'bottle':(e.side==='L'||e.side==='R'||e.side==='both'||e.minsL||e.minsR)?'nurse':'bottle';
+  if(e.type==='diaper') return e.kind==='dirty'?'poop':e.kind==='mixed'?'both':e.kind==='dry'?'dry':e.kind==='wet'?'wet':'diaper';
+  return {sleep:'moon',burp:'burp',spit:'spit',med:'pill',temp:'thermo',note:'note',care:'star',pump:'pumped'}[e.type]||'drop';
+}
+function evShort(e){
+  if(e.type==='feed'){ if(e.side==='bottle') return e.ml?e.ml+' מ״ל':'בקבוק';
+    const m=(+e.minsL||0)+(+e.minsR||0)||(+e.mins||0); const sd=e.side==='L'?'שמאל':e.side==='R'?'ימין':e.side==='both'?'שני צדדים':'האכלה'; return m?`${sd} · ${m}׳`:sd; }
+  if(e.type==='diaper') return e.kind?DIAPER[e.kind]:'חיתול';
+  if(e.type==='sleep') return e.end?hm(e.end-e.t).replace(/^0/,''):(e.baby==='b'||isGirl(e.baby)?'ישנה':'ישן')+' עכשיו';
+  if(e.type==='burp') return 'גרעפס'; if(e.type==='spit') return 'פליטה';
+  if(e.type==='med') return e.medName||'תרופה'; if(e.type==='temp') return (e.c||'')+'°';
+  if(e.type==='care') return CARE[e.care]||'טיפול'; if(e.type==='pump') return e.ml?e.ml+' מ״ל':'שאיבה';
+  if(e.type==='note') return (e.note||'הערה').slice(0,18);
+  return label(e);
+}
+function bubble(e){
+  const k=e.baby==='mom'?'mom':e.baby, sleepW = e.type==='sleep' ? Math.max(6,Math.min(100,((e.end||Date.now())-e.t)/(4*H)*100)) : 0;
+  return `<button class="bub ${k}" data-id="${e.id}" aria-label="${esc(label(e)+' · '+nm(e.baby)+' · '+hhmm(e.t)+' · '+evShort(e))}">${pic(evPic(e),22)}<span>${esc(evShort(e))}</span>${sleepW?`<i class="slp" style="width:${sleepW.toFixed(0)}%"></i>`:''}${e.note&&e.type!=='note'?'<b class="nb" aria-hidden="true"></b>':''}</button>`;
+}
+
+/* ---------- journal: two lanes, time down the middle ---------- */
 function viewTimeline(){
-  const types=[['all','הכל'],['feed','האכלה'],['diaper','חיתול'],['sleep','שינה'],['health','בריאות'],['pump','שאיבה']];
-  let h=`<div class="wrap" style="gap:10px"><h3 class="sec">ציר זמן משולב</h3>
-    <div class="seg" role="group" aria-label="תאום">${[['all','שניהם'],['a',nm('a')],['b',nm('b')]].map(([v,l])=>`<button data-tlb="${v}" aria-pressed="${tlBaby===v}">${esc(l)}</button>`).join('')}</div>
-    <div class="chips" role="group" aria-label="סוג">${types.map(([v,l])=>`<button class="chip" data-tlt="${v}" aria-pressed="${tlType===v}">${l}</button>`).join('')}</div>
-    <div class="actions w"><button class="sbtn" data-add="note">+ הערה</button><button class="sbtn" data-add="care">+ אמבטיה, בטן, ציפורניים…</button></div>`;
-  const list=events.filter(e=>(tlBaby==='all'||e.baby===tlBaby||(tlType==='pump'&&e.baby==='mom'))
-    && (tlType==='all' || (tlType==='health'?['med','temp','care','note'].includes(e.type):e.type===tlType))).slice(0,250);
+  const types=[['all','הכל','all'],['feed','האכלה','bottle'],['diaper','חיתול','diaper'],['sleep','שינה','moon'],['health','בריאות','heart'],['pump','שאיבה','pumped']];
+  let h=`<div class="wrap" style="gap:12px"><div class="duel-h"><h2>יומן</h2></div>
+    <div class="lanes-hd"><span class="lh a">${esc(nm('a'))}</span><span class="lh mid">שעה</span><span class="lh b">${esc(nm('b'))}</span></div>
+    <div class="picchips" role="group" aria-label="סוג">${types.map(([v,l,i])=>`<button data-tlt="${v}" aria-pressed="${tlType===v}">${pic(i,22)}<span>${l}</span></button>`).join('')}</div>
+    <div class="actions w"><button class="sbtn" data-add="note">${pic('note',18)} הערה</button><button class="sbtn" data-add="care">${pic('star',18)} אמבטיה, בטן, ציפורניים</button></div>`;
+  const list=events.filter(e=>(tlType==='all' || (tlType==='health'?['med','temp','care','note'].includes(e.type):tlType==='feed'?['feed','burp','spit'].includes(e.type):e.type===tlType))).slice(0,300);
   if(!loaded) return h+'<div class="empty">טוען רישומים…</div></div>';
   if(!list.length) return h+'<div class="empty">אין רישומים בסינון הזה.</div></div>';
-  let cur=''; const today=new Date().toDateString(), yest=new Date(Date.now()-D).toDateString();
+  const today=new Date().toDateString(), yest=new Date(Date.now()-D).toDateString();
+  let cur='', rows=[];
+  const flush=()=>{ for(const r of rows){ h+=`<div class="lane-row"><div class="ln a">${r.a.map(bubble).join('')}</div><div class="ln mid"><span>${r.time}</span></div><div class="ln b">${r.b.map(bubble).join('')}${r.mom.map(bubble).join('')}</div></div>`; } rows=[]; };
   for(const e of list){ const ds=new Date(e.t).toDateString();
-    if(ds!==cur){ if(cur) h+='</div>'; cur=ds; h+=`<div class="day">${ds===today?'היום':ds===yest?'אתמול':new Date(e.t).toLocaleDateString('he-IL',{weekday:'long',day:'numeric',month:'numeric'})}</div><div class="list">`; }
-    h+=itemHtml(e); }
-  return h+'</div><p class="note">מוצגים 14 הימים האחרונים. הקשה על רישום פותחת אותו לעריכה.</p></div>';
+    if(ds!==cur){ flush(); if(cur) h+='</div>'; cur=ds; h+=`<div class="day">${ds===today?'היום':ds===yest?'אתמול':new Date(e.t).toLocaleDateString('he-IL',{weekday:'long',day:'numeric',month:'numeric'})}</div><div class="lanes">`; }
+    const tm=hhmm(e.t); let r=rows[rows.length-1];
+    if(!r || r.time!==tm){ r={time:tm,a:[],b:[],mom:[]}; rows.push(r); }
+    (e.baby==='a'?r.a:e.baby==='b'?r.b:r.mom).push(e); }
+  flush();
+  return h+'</div><p class="note">14 הימים האחרונים. הקשה על טיפה פותחת אותה לעריכה. פס בתוך השינה מראה את האורך שלה מתוך 4 שעות.</p></div>';
 }
+
+/* ---------- summary numbers as mirrored bars ---------- */
+function mirrorRows(A,B){
+  const rows=[['האכלות','bottle',x=>x.feeds,v=>v],['דקות הנקה','nurse',x=>x.nurseMin,v=>v],['מ״ל בבקבוק','bottle',x=>x.ml,v=>v],['רטובים','wet',x=>x.wet,v=>v],['קקי','poop',x=>x.dirty,v=>v],
+    ['שינת יום','sun',x=>x.sleepDay,v=>v?hm(v).replace(/^0/,''):'—'],['שינת לילה','moon',x=>x.sleepNight,v=>v?hm(v).replace(/^0/,''):'—'],['התעוררויות','sun',x=>x.wakings,v=>v],['תרופות','pill',x=>x.meds,v=>v]];
+  return '<div class="mirror">'+rows.map(([l,i,f,fmt])=>{ const a=f(A)||0, b=f(B)||0, mx=Math.max(a,b,1);
+    return `<div class="mr"><div class="mv a"><span>${a?fmt(a):'—'}</span><i style="width:${a?Math.max(4,a/mx*100).toFixed(0):0}%"></i></div><div class="ml2">${pic(i,20)}<span>${l}</span></div><div class="mv b"><i style="width:${b?Math.max(4,b/mx*100).toFixed(0):0}%"></i><span>${b?fmt(b):'—'}</span></div></div>`; }).join('')+'</div>';
+}
+
 function sumWindow(){
   const now=Date.now(), d0=new Date(); d0.setHours(0,0,0,0);
   if(sumMode==='night'){ const s=new Date(); if(s.getHours()<12){ s.setDate(s.getDate()-1);} s.setHours(22,0,0,0); const e=new Date(s); e.setDate(e.getDate()+1); e.setHours(7,0,0,0); return [s.getTime(), Math.min(e.getTime(),now), 'לילה אחרון, 22:00–07:00']; }
@@ -352,9 +430,9 @@ function viewSummary(){
     <div class="chips" role="group">${[['night','מה היה בלילה'],['12','12 ש׳'],['24','24 ש׳'],['today','היום'],['yest','אתמול']].map(([v,l])=>`<button class="chip" data-sum="${v}" aria-pressed="${sumMode===v}">${l}</button>`).join('')}</div>
     <p class="note">${lbl}${to<from?'':' · '+hhmm(from)+'–'+hhmm(to)}</p>
     ${gaugesHtml(from,to)}
-    <h3 class="sec">במספרים</h3>
-    <div class="tbl-wrap"><table><thead><tr><th></th><th><span class="dot a"></span> ${esc(nm('a'))}</th><th><span class="dot b"></span> ${esc(nm('b'))}</th></tr></thead><tbody>
-    ${rows.map(([l,f])=>`<tr><th scope="row">${l}</th><td>${f(A)}</td><td>${f(B)}</td></tr>`).join('')}</tbody></table></div>`;
+    <h3 class="sec">זה מול זה</h3>
+    <div class="lanes-hd"><span class="lh a">${esc(nm('a'))}</span><span class="lh mid"></span><span class="lh b">${esc(nm('b'))}</span></div>
+    ${mirrorRows(A,B)}`;
   const notes=[...A.notes,...B.notes].sort((x,y)=>x.t-y.t);
   if(notes.length) h+='<div class="card"><h4>הערות מהזמן הזה</h4>'+notes.map(e=>`<div class="note"><span class="dot ${e.baby}"></span> ${hhmm(e.t)} · ${label(e)}: ${esc(e.note)}</div>`).join('')+'</div>';
   // weekly
@@ -474,8 +552,8 @@ function viewMilk(){
 }
 
 function viewMore(){
-  const subs=[['health','בריאות'],['milk','חלב'],['food','מזון מוצק'],['home','בית'],['parents','הורים'],['report','דוח לרופא']];
-  return `<div class="wrap" style="gap:12px"><div class="seg" role="group" aria-label="קטגוריה">${subs.map(([v,l])=>`<button data-more="${v}" aria-pressed="${moreSub===v}">${l}</button>`).join('')}</div>`
+  const subs=[['health','בריאות','heart'],['milk','חלב','pumped'],['food','מזון מוצק','spoon'],['home','בית','home'],['parents','הורים','people'],['report','דוח לרופא','doc']];
+  return `<div class="wrap" style="gap:12px"><div class="picchips subs" role="group" aria-label="קטגוריה">${subs.map(([v,l,i])=>`<button data-more="${v}" aria-pressed="${moreSub===v}">${pic(i,24)}<span>${l}</span></button>`).join('')}</div>`
     + (moreSub==='health'?viewHealth(): moreSub==='milk'?viewMilk(): moreSub==='food'?viewFood(): moreSub==='home'?viewHome(): moreSub==='parents'?viewParents(): viewReport()) + '</div>';
 }
 function viewFood(){
@@ -792,7 +870,8 @@ function openSheet(html,bind){ $('#sheet').innerHTML=html; $('#scrim').hidden=fa
 function closeSheet(){ $('#scrim').hidden=true; $('#sheet').innerHTML=''; }
 $('#scrim').addEventListener('click',e=>{ if(e.target.id==='scrim') closeSheet(); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape' && !$('#scrim').hidden) closeSheet(); });
-const optsHtml=(name,map,cur,sw)=>`<div class="opts ${sw?'sw':''}" data-name="${name}">`+Object.entries(map).map(([v,l])=>sw?`<button type="button" data-v="${v}" aria-pressed="${cur===v}"><i style="background:${l[1]}"></i>${l[0]}</button>`:`<button type="button" data-v="${v}" aria-pressed="${cur===v}">${l}</button>`).join('')+'</div>';
+const optsHtml=(name,map,cur,sw)=>{ const P=OPT_PIC[name]; const withPic=!sw&&P&&Object.keys(map).every(v=>P[v]);
+  return `<div class="opts ${sw?'sw':''} ${withPic?'ic':''}" data-name="${name}">`+Object.entries(map).map(([v,l])=>sw?`<button type="button" data-v="${v}" aria-pressed="${cur===v}"><i style="background:${l[1]}"></i>${l[0]}</button>`:`<button type="button" data-v="${v}" aria-pressed="${cur===v}">${withPic?pic(P[v],28):''}<span>${l}</span></button>`).join('')+'</div>'; };
 function bindOpts(sh,state,onPick){ sh.querySelectorAll('.opts[data-name]').forEach(g=>g.addEventListener('click',ev=>{ const b=ev.target.closest('button'); if(!b) return;
   const n=g.dataset.name, v=b.dataset.v; state[n]= state[n]===v?null:v; g.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v===state[n])); onPick&&onPick(n,state[n]); })); }
 const tIn = t => t?hhmm(t):'';
@@ -1026,7 +1105,7 @@ document.addEventListener('click',async e=>{
   if(d.act){ if(canWrite===false) return; act(d.act,d.baby); return; }
   if(d.tact){ timerAct(d.tact,d.baby); return; }
   if(d.off!=null){ offsetMin=+d.off; render(); return; }
-  if(d.id && t.classList.contains('item')){ if(canWrite===false) return; editEvent(d.id); return; }
+  if(d.id && (t.classList.contains('item')||t.classList.contains('bub'))){ if(canWrite===false) return; editEvent(d.id); return; }
   if(d.tlb){ tlBaby=d.tlb; render(); return; } if(d.tlt){ tlType=d.tlt; render(); return; }
   if(d.sum){ sumMode=d.sum; render(); return; }
   if(d.add){ addFree(d.add); return; }

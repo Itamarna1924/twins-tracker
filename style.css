@@ -299,3 +299,47 @@ svg.gauge text{font-family:var(--display);font-size:9px;fill:var(--fg)}
 .rain{display:grid;grid-template-columns:150px minmax(0,1fr);gap:18px;align-items:end;margin-top:12px;font-size:13px;line-height:1.5}
 
 .wv .front{opacity:.9}
+
+/* ---------- pictures instead of words ---------- */
+svg.pic{flex:none}
+.picchips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;margin-inline:-2px}
+.picchips button{flex:none;min-width:74px;min-height:70px;padding:8px 10px;border-radius:22px;background:#fff;box-shadow:0 2px 0 var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:13px;color:var(--fg)}
+.picchips button[aria-pressed="true"]{background:var(--fg);color:#fff;box-shadow:none}
+.picchips.subs button{min-width:84px}
+.sbtn{display:inline-flex;align-items:center;gap:6px}
+.opts.ic button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:76px;min-height:76px;border-radius:22px;padding:8px 10px;font-size:14px}
+
+/* journal: twin a on the right lane, twin b on the left, time down the middle */
+.lanes-hd{display:grid;grid-template-columns:1fr 56px 1fr;align-items:center;font-family:var(--display);font-weight:600;font-size:17px}
+.lanes-hd .a{color:var(--a)} .lanes-hd .b{color:var(--b);text-align:left} .lanes-hd .mid{text-align:center;font-size:12px;color:var(--muted);font-weight:500}
+.lanes{position:relative;display:flex;flex-direction:column}
+.lanes::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:2px;margin-left:-1px;background:var(--line);border-radius:2px}
+.lane-row{display:grid;grid-template-columns:1fr 56px 1fr;align-items:center;min-height:48px;position:relative}
+.ln{display:flex;flex-wrap:wrap;gap:6px;padding:4px 0;min-width:0}
+.ln.a{justify-content:flex-end} .ln.b{justify-content:flex-start}
+.ln.mid{justify-content:center}
+.ln.mid span{background:var(--bg);padding:2px 4px;font-family:var(--display);font-weight:500;font-size:14px;font-variant-numeric:tabular-nums;position:relative;z-index:1}
+.bub{position:relative;display:inline-flex;align-items:center;gap:6px;max-width:100%;min-height:42px;padding:6px 12px 6px 10px;font-size:14px;overflow:hidden;box-shadow:0 2px 0 var(--line)}
+.bub span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bub.a{background:var(--a-soft);color:#155BB5;border-radius:22px 22px 6px 22px}
+.bub.b{background:var(--b-soft);color:#C2382C;border-radius:22px 22px 22px 6px}
+.bub.mom{background:#fff;color:var(--muted);border-radius:22px}
+.bub span{color:var(--fg)}
+.bub .slp{position:absolute;bottom:0;height:4px;border-radius:2px;background:currentColor;opacity:.55}
+.bub.a .slp{right:0} .bub.b .slp{left:0}
+.bub .nb{position:absolute;top:6px;width:7px;height:7px;border-radius:50%;background:#F0B35B}
+.bub.a .nb{left:6px} .bub.b .nb{right:6px}
+
+/* summary: the two twins mirrored around the label */
+.mirror{display:flex;flex-direction:column;gap:4px;background:#fff;border-radius:22px;box-shadow:0 2px 0 var(--line);padding:10px 12px}
+.mr{display:grid;grid-template-columns:1fr 92px 1fr;align-items:center;gap:8px;min-height:40px}
+.mv{display:flex;align-items:center;gap:6px;min-width:0}
+.mv.a{justify-content:flex-start} .mv.b{justify-content:flex-start;flex-direction:row-reverse}
+.mv i{display:block;height:14px;border-radius:7px}
+.mv.a i{background:linear-gradient(270deg,#86D6FF,#2F8BEA)} .mv.b i{background:linear-gradient(90deg,#FFB79C,#F2604E)}
+.mv span{font-family:var(--display);font-weight:600;font-size:16px;font-variant-numeric:tabular-nums;flex:none}
+.mv.a span{color:#155BB5} .mv.b span{color:#C2382C}
+.ml2{display:flex;flex-direction:column;align-items:center;gap:1px;font-size:12px;color:var(--muted);text-align:center}
+.ml2 svg{color:var(--fg)}
+.bar.a i{background:var(--a)} .bar.b i{background:var(--b)}
+.bar i{border-radius:8px 8px 3px 3px!important}
