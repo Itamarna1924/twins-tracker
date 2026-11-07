@@ -5,8 +5,8 @@ importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js
 firebase.initializeApp(self.FIREBASE_CONFIG);
 firebase.messaging(); // notification payloads are shown automatically while the app is in the background
 
-const CACHE='tt-v3';
-const SHELL = ['./', './index.html', './style.css', './app.js', './boot.js', './config.js', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
+const CACHE='tt-v4';
+const SHELL = ['./', './index.html', './style.css', './app.js', './drops.js', './drops.css', './boot.js', './config.js', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
 const FB = 'https://www.gstatic.com/firebasejs/10.12.2/';
 
 self.addEventListener('install', e => {
@@ -19,7 +19,7 @@ self.addEventListener('fetch', e => {
   const req = e.request; if (req.method !== 'GET') return;
   const url = new URL(req.url);
   const sameOrigin = url.origin === self.location.origin;
-  const cacheFirst = url.href.startsWith(FB) || url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
+  const cacheFirst = url.href.startsWith(FB) || url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com' || url.href.startsWith('https://cdnjs.cloudflare.com/ajax/libs/gsap/');
   if (!sameOrigin && !cacheFirst) return; // Firestore, Auth and other APIs go straight to the network
   if (cacheFirst) {
     e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(res => { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); return res; })));
