@@ -125,3 +125,4 @@
 .drops .milkt .tile svg{width:32px;height:32px}
 .drops .tiles{grid-template-columns:repeat(var(--n,3),minmax(0,1fr))}
 .drops .dsheet,.drops .stage{user-select:none;-webkit-user-select:none}
+.drops #dBtl:focus{outline:none} .drops #dBtl:focus-visible{outline:3px solid var(--ink);outline-offset:4px;border-radius:12px}
