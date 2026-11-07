@@ -5,7 +5,7 @@ importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js
 firebase.initializeApp(self.FIREBASE_CONFIG);
 firebase.messaging(); // notification payloads are shown automatically while the app is in the background
 
-const CACHE='tt-v6';
+const CACHE='tt-v7';
 const SHELL = ['./', './index.html', './style.css', './app.js', './drops.js', './drops.css', './boot.js', './config.js', './manifest.webmanifest', './icons/drops-192.png', './icons/drops-512.png'];
 const FB = 'https://www.gstatic.com/firebasejs/10.12.2/';
 

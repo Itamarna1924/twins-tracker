@@ -414,13 +414,14 @@ function viewSummary(){
   const days=[]; const d0=new Date(); d0.setHours(0,0,0,0);
   for(let i=6;i>=0;i--){ const s=d0.getTime()-i*D; days.push([s,s+D]); }
   const wk = (k,f) => days.map(([s,e])=>f(stats(k,s,Math.min(e,Date.now()))));
-  const chart=(title,f,fmt)=>{ const va=wk('a',f), vb=wk('b',f); const mx=Math.max(1,...va,...vb);
-    const one=(k,vals)=>`<div class="bars">${vals.map((v,i)=>`<div class="bar ${k}"><em>${fmt(v)}</em><i style="height:${Math.round(v/mx*60)}px"></i><span>${new Date(days[i][0]).toLocaleDateString('he-IL',{weekday:'narrow'})}</span></div>`).join('')}</div>`;
-    return `<div class="card"><h4>${title}</h4><div class="duo"><div><div class="note"><span class="dot a"></span> ${esc(nm('a'))}</div>${one('a',va)}</div><div><div class="note"><span class="dot b"></span> ${esc(nm('b'))}</div>${one('b',vb)}</div></div></div>`; };
+  const chart=(icon,title,f,fmt)=>{ const va=wk('a',f), vb=wk('b',f); const mx=Math.max(1,...va,...vb);
+    const col=(v,k)=>`<div class="wb ${k}"><em>${v?fmt(v):''}</em><i style="height:${v?Math.max(6,Math.round(v/mx*96)):3}px"></i></div>`;
+    return sumCard(icon,title,'',`<div class="week">${days.map((d,i)=>`<div class="wd">${col(va[i],'a')}${col(vb[i],'b')}<span>${new Date(d[0]).toLocaleDateString('he-IL',{weekday:'narrow'})}</span></div>`).join('')}</div>
+      <div class="legend"><i class="lg a"></i>${esc(nm('a'))} &nbsp; <i class="lg b"></i>${esc(nm('b'))}</div>`); };
   h+='<h3 class="sec">7 הימים האחרונים</h3>';
-  h+=chart('האכלות ביום',x=>x.feeds,v=>v||'');
-  h+=chart('שעות שינה ביום',x=>Math.round((x.sleepDay+x.sleepNight)/H*10)/10,v=>v||'');
-  h+=chart('חיתולים רטובים ביום',x=>x.wet,v=>v||'');
+  h+=chart('bottle','האכלות ביום',x=>x.feeds,v=>v);
+  h+=chart('moon','שעות שינה ביום',x=>Math.round((x.sleepDay+x.sleepNight)/H*10)/10,v=>v);
+  h+=chart('wet','חיתולים רטובים ביום',x=>x.wet,v=>v);
   return h+'</div>';
 }
 const GM = {w:{label:'משקל', key:'wfa', unit:'ק״ג', get:x=>x.w?x.w/1000:null, dec:1}, len:{label:'אורך', key:'lhfa', unit:'ס״מ', get:x=>x.len||null, dec:0}, head:{label:'היקף ראש', key:'hcfa', unit:'ס״מ', get:x=>x.head||null, dec:0}};
