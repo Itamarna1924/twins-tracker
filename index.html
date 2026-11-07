@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>יומן התאומים</title>
-<meta name="theme-color" content="#3f51c9">
+<meta name="theme-color" content="#F7F7F4">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&family=Assistant:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;400;500&family=IBM+Plex+Sans+Hebrew:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -32,11 +32,11 @@
     <button class="iconbtn" id="setBtn" aria-label="הגדרות" title="הגדרות"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg></button>
   </header>
   <div class="ro-note" id="roNote" hidden>מצב צפייה בלבד. אפשר לראות את כל הרישומים, אבל לא להוסיף או לשנות.</div>
+  <main id="view"></main>
   <form class="free w" id="freeForm" autocomplete="off">
     <input id="freeIn" enterkeyhint="send" aria-label="רישום בכתיבה חופשית" placeholder="כתיבה או הכתבה: ״אלה 90 מ״ל, נועה חיתול קקי״">
     <button class="sbtn dark" type="submit">רישום</button>
   </form>
-  <main id="view"></main>
 </div>
 
 <nav class="tabs" aria-label="מסכים"><div class="in" id="tabs" dir="rtl"></div></nav>

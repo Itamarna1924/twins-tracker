@@ -22,7 +22,7 @@ const MOODS = [[5,'טוב מאוד'],[4,'טוב'],[3,'ככה ככה'],[2,'קשה
 const COMMON_INV = [['חיתולים','יח׳',30],['מגבונים','חבילות',2],['תמ״ל','קופסאות',1],['משחת החתלה','יח׳',1],['ויטמין D','בקבוקונים',1],['שקיות לאחסון חלב','יח׳',10]];
 const ico = (k,cls='') => `<svg class="${cls}" viewBox="0 0 24 24">${ICON[k]}</svg>`;
 
-const TYPE = {feed:'האכלה', diaper:'חיתול', sleep:'שינה', pump:'שאיבה', med:'תרופה', temp:'חום', note:'הערה', care:'טיפול'};
+const TYPE = {burp:'גרעפס', spit:'פליטה', feed:'האכלה', diaper:'חיתול', sleep:'שינה', pump:'שאיבה', med:'תרופה', temp:'חום', note:'הערה', care:'טיפול'};
 const SIDE = {L:'שמאל', R:'ימין', both:'שני הצדדים', bottle:'בקבוק'};
 const MILK = {pumped:'חלב שאוב', formula:'תמ״ל', special:'תמ״ל מיוחד', mixed:'מעורב'};
 const DIAPER = {wet:'רטוב', dirty:'קקי', mixed:'רטוב+קקי', dry:'יבש'};
@@ -46,17 +46,18 @@ function normCdf(z){ const t=1/(1+0.2316419*Math.abs(z)); const d=0.3989423*Math
 const pctTxt = z => { const p=normCdf(z)*100; return p<1?'מתחת ל־1':p>99?'מעל 99':String(Math.round(p)); };
 /* ---------- state ---------- */
 let db=null, user=null, assets=null, me=null, canWrite=null;
-const DEFAULT_CFG = {a:{name:'תאום א׳',sideMode:'alt',photo:null,sex:null}, b:{name:'תאום ב׳',sideMode:'alt',photo:null,sex:null},
+const DEFAULT_CFG = {a:{name:'תאום א׳',sideMode:'alt',photo:null,sex:null}, b:{name:'תאומה ב׳',sideMode:'alt',photo:null,sex:null},
   birth:'', ga:'', routineSync:false, th:{feeds:8, wet:6, noWetH:8, feverC:38}};
 let cfg = structuredClone(DEFAULT_CFG);
 let events=[], timers={}, meds=[], stock=[], growth=[], appts=[], solids=[], inv=[], shop=[], psleep=[], mine=[];
 let downloads=null;
 let loaded=false, offsetMin=0, tab='now', tlBaby='all', tlType='all', sumMode='night', moreSub='milk', rep={baby:'a',days:7};
 let night=false; try{ night=localStorage.getItem('night')==='1'; tab=localStorage.getItem('tab')||'now'; moreSub=localStorage.getItem('more')||'milk'; }catch(e){}
-if(!['now','tl','sum','health','more'].includes(tab)) tab='now';
+if(tab==='health'){ tab='more'; moreSub='health'; }
+if(!['now','tl','duel','sum','more'].includes(tab)) tab='now';
 document.body.classList.toggle('night',night);
 
-const nm = k => k==='mom' ? 'אמא' : (cfg[k]?.name || (k==='a'?'תאום א׳':'תאום ב׳'));
+const nm = k => { if(k==='mom') return 'אמא'; const n=cfg[k]?.name || (k==='a'?'תאום א׳':'תאומה ב׳'); return (n==='תאום ב׳' && (cfg.b?.sex||'girl')==='girl') ? 'תאומה ב׳' : n; };
 const pad = n => String(n).padStart(2,'0');
 const hhmm = t => { const d=new Date(t); return pad(d.getHours())+':'+pad(d.getMinutes()); };
 const dmy = t => new Date(t).toLocaleDateString('he-IL',{day:'numeric',month:'numeric'});
@@ -144,6 +145,7 @@ function medsDue(){
   }} return out;
 }
 function summary(e){
+  if(e.type==='burp'||e.type==='spit') return e.note||'';
   const p=[];
   if(e.type==='feed'){
     if(e.side) p.push(SIDE[e.side]);
@@ -177,7 +179,7 @@ async function resolveNames(ids){
 const whoTxt = id => !id ? '' : id===me ? 'אני' : (byNames[id]||'');
 
 /* ---------- views ---------- */
-const TABS=[['now','עכשיו','now'],['tl','ציר זמן','list'],['sum','סיכום','sum'],['health','בריאות','health'],['more','עוד','more']];
+const TABS=[['now','עכשיו','now'],['tl','יומן','list'],['duel','קרב','sum'],['sum','דו״ח','sum'],['more','עוד','more']];
 function renderTabs(){
   $('#tabs').innerHTML = TABS.map(([id,l,i])=>`<button data-tab="${id}" ${tab===id?'aria-current="page"':''}>${ico(i,'i')}<span>${l}</span></button>`).join('');
 }
@@ -185,64 +187,316 @@ function render(){
   renderTabs();
   const v=$('#view');
   $('#freeForm').hidden = tab!=='now';
-  v.innerHTML = tab==='now'?viewNow() : tab==='tl'?viewTimeline() : tab==='sum'?viewSummary() : tab==='health'?viewHealth() : viewMore();
+  document.body.classList.toggle('on-now', tab==='now');
+  if(tab==='now'){
+    if(!$('#stage')){ v.innerHTML='<div class="wrap" id="nowTop"></div><section class="stage" id="stage" aria-label="שתי הטיפות"></section><div class="wrap" id="nowBot"></div>'; stageW=0; }
+    $('#nowTop').innerHTML=nowTopHtml(); $('#nowBot').innerHTML=nowBotHtml(); fitStage(); updateStage();
+  } else v.innerHTML = tab==='tl'?viewTimeline() : tab==='duel'?viewDuel() : tab==='sum'?viewSummary() : viewMore();
+  if(tab==='duel') resolveNames([...new Set(events.map(e=>e.by))]);
   if(tab==='more' && moreSub==='parents') resolveNames([...new Set(psleep.map(e=>e.by))]);
   if(tab==='tl') resolveNames([...new Set(events.map(e=>e.by))]);
-  if(tab==='health') resolveNames([...new Set(events.filter(e=>e.type==='med').map(e=>e.by))]);
+  if(tab==='more' && moreSub==='health') resolveNames([...new Set(events.filter(e=>e.type==='med').map(e=>e.by))]);
   tick();
 }
 
-function viewNow(){
-  let h='<div class="wrap" style="gap:14px">';
+/* ---------- Now: two drops, each on its own water ---------- */
+const isGirl = k => (cfg[k]?.sex || (k==='b'?'girl':'boy'))==='girl';
+const g = (k,m,f) => isGirl(k)?f:m;
+const hm = ms => { const m=Math.max(0,Math.floor(ms/M)); return pad(Math.floor(m/60))+':'+pad(m%60); };
+let bothMode=false, stageW=0, stageH=0;
+const DOCK_I = {
+  feed:'<path d="M9 2h6M10 2v3L8 8v12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V8l-2-3V2M8 13h8"/>',
+  nurse:'<path d="M12 20c-5-3-8-6.3-8-9.6A4 4 0 0 1 12 9a4 4 0 0 1 8 1.4C20 13.7 17 17 12 20z"/><path d="M12 11.5v2.5l1.6 1"/>',
+  diaper:'<path d="M3 7h18v3a9 9 0 0 1-18 0z"/><path d="M8 10.5c1 2 2.5 3 4 3s3-1 4-3"/>',
+  sleep:'<path d="M19.5 14.5A8 8 0 1 1 9.5 4.5a6.5 6.5 0 0 0 10 10z"/>',
+  wake:'<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>'
+};
+function nowAlerts(){
   const al=[...alertsFor('a'),...alertsFor('b')].sort((x,y)=>(x.lvl==='urgent'?0:1)-(y.lvl==='urgent'?0:1));
-  const due=medsDue();
-  for(const s of solids){ if(s.reaction==='strong' && Date.now()-s.t<48*H) al.unshift({lvl:'urgent', txt:`תגובה משמעותית אצל ${nm(s.baby)} אחרי ${s.foods||'טעימה'} (${hhmm(s.t)}). לפנות לרופא. קושי בנשימה, התנפחות או הקאות חוזרות: מד״א 101.`}); }
+  for(const s of solids){ if(s.reaction==='strong' && Date.now()-s.t<48*H) al.unshift({lvl:'urgent', k:s.baby, txt:`תגובה משמעותית אצל ${nm(s.baby)} אחרי ${s.foods||'טעימה'} (${hhmm(s.t)}). לפנות לרופא. קושי בנשימה, התנפחות או הקאות חוזרות: מד״א 101.`}); }
   const low=inv.filter(i=>(+i.qty||0)<=(+i.low||0));
   if(low.length) al.push({lvl:'warn', txt:`עומד להיגמר: ${low.map(i=>i.name).join(', ')}.`, home:true});
   const water=mine.find(d=>d.id==='water');
   if(me && water && water.day===new Date().toDateString() && Date.now()-water.last>3*H) al.push({lvl:'warn', txt:`עברו ${dur(Date.now()-water.last)} מאז ששתית. כוס מים?`, home:true});
+  return {al, due:medsDue()};
+}
+const frozenK = k => alertsFor(k).some(a=>a.lvl==='urgent') || solids.some(s=>s.baby===k && s.reaction==='strong' && Date.now()-s.t<48*H);
+function nowTopHtml(){
+  const {al,due}=nowAlerts(); let h='';
   if(al.length||due.length){
     h+='<div class="alerts">'+al.map(a=>`<div class="alert ${a.lvl}" role="${a.lvl==='urgent'?'alert':'status'}"><div>${esc(a.txt)}${a.lvl==='urgent'||a.home?'':'<small>התראה בלבד, לא אבחנה. כדאי לאשר את הספים מול רופא הילדים.</small>'}</div></div>`).join('')
-      + due.map(d=>`<div class="alert warn"><span class="dot ${d.k}"></span><div><b>${esc(d.m.name)}</b> ל${esc(nm(d.k))}: ${d.last?'ניתן לאחרונה '+ago(d.last.t):'עוד לא ניתן'}. <small>בלשונית בריאות מסמנים "ניתן".</small></div></div>`).join('')+'</div>';
+      + due.map(d=>`<div class="alert warn"><div><b>${esc(d.m.name)}</b> ל${esc(nm(d.k))}: ${d.last?'ניתן לאחרונה '+ago(d.last.t):'עוד לא ניתן'}. <small>מסמנים "ניתן" בעוד › בריאות.</small></div></div>`).join('')+'</div>';
   }
-  h+='<section class="compare" aria-label="מצב נוכחי">'+['a','b'].map(k=>{
-    const f=lastOf(k,'feed'), d=lastOf(k,'diaper'), s=openSleep(k), w=lastWake(k), sug=suggestSide(k), tm=timers[k];
-    const sleepTxt = tm ? 'בהנקה' : s ? 'ישן/ה '+dur(Date.now()-s.t) : (w ? 'ער/ה '+dur(Date.now()-w) : 'ער/ה');
-    return `<article class="twin ${k}">
-      <div class="hd">${av(k)}<div style="min-width:0"><h2>${esc(nm(k))}</h2><div class="age">${esc(ageText())}</div></div></div>
-      <span class="sleepchip tn ${s||tm?'asleep':''}" data-live="sleep-${k}">${sleepTxt}</span>
-      <div class="stat"><span class="k">האכלה אחרונה</span><span class="v tn">${f?ago(f.t):'—'}</span>
-        <span class="s tn">${f?hhmm(f.t)+(f.side?' · '+SIDE[f.side]:''):'אין עדיין'}${sug?' · הבא: '+SIDE[sug]:''}</span></div>
-      <div class="stat"><span class="k">חיתול אחרון</span><span class="v tn">${d?ago(d.t):'—'}</span>
-        <span class="s tn">${d?hhmm(d.t)+(d.kind?' · '+DIAPER[d.kind]:''):'אין עדיין'}</span></div>
-    </article>`;}).join('')+'</section>';
   if(cfg.routineSync){ const hint=syncHint(); if(hint) h+=`<div class="hint">${hint}</div>`; }
-  const run=['a','b'].filter(k=>timers[k]);
-  if(run.length) h+='<section class="timers w">'+run.map(k=>{ const t=timers[k];
-    return `<div class="timer ${k}">${av(k)}<div><div class="side">${SIDE[t.side]}</div><div class="meta tn" data-live="tmeta-${k}"></div></div><div class="el tn" data-live="tel-${k}">0:00</div>
-      <div class="ctl"><button class="main" data-tact="switch" data-baby="${k}">החלפת צד ל${SIDE[t.side==='L'?'R':'L']}</button><button data-tact="stop" data-baby="${k}">סיום</button><button class="x" data-tact="cancel" data-baby="${k}" aria-label="ביטול השעון">✕</button></div></div>`;}).join('')+'</section>';
-  h+=`<div class="when w" role="group" aria-label="מתי"><span class="lbl">מתי:</span>`+[[0,'עכשיו'],[10,'לפני 10׳'],[20,'לפני 20׳'],[30,'לפני 30׳'],[60,'לפני שעה'],[120,'לפני שעתיים']].map(([o,l])=>`<button class="chip" data-off="${o}" aria-pressed="${offsetMin===o}">${l}</button>`).join('')+'</div>';
-  const sa=openSleep('a'), sb=openSleep('b');
-  const sleepBtn=k=>{ const s=k==='a'?sa:sb; return `<button class="log ${k} ${s?'on':''}" data-act="sleep" data-baby="${k}">${ico(s?'wake':'sleep')}<span>${s?'התעורר/ה':'נרדם/ה'}</span></button>`; };
-  const nurseBtn=k=>`<button class="log ${k} ${timers[k]?'on':''}" data-act="nurse" data-baby="${k}">${ico('nurse')}<span>${timers[k]?'הנקה רצה':'שעון הנקה'}</span></button>`;
-  h+=`<section class="grid w" aria-label="רישום מהיר">
-    <div class="colhead">${av('a','sm')}${esc(nm('a'))}</div><div class="colhead">${av('b','sm')}${esc(nm('b'))}</div><div class="colhead">שניהם</div>
-    <button class="log a" data-act="feed" data-baby="a">${ico('feed')}<span>האכלה</span></button>
-    <button class="log b" data-act="feed" data-baby="b">${ico('feed')}<span>האכלה</span></button>
-    <button class="log both" data-act="feed" data-baby="both">${ico('feed')}<span>האכלה</span></button>
-    ${nurseBtn('a')}${nurseBtn('b')}
-    <button class="log both ${timers.a&&timers.b?'on':''}" data-act="nurse" data-baby="both">${ico('nurse')}<span>הנקה כפולה</span></button>
-    <button class="log a" data-act="diaper" data-baby="a">${ico('diaper')}<span>חיתול</span></button>
-    <button class="log b" data-act="diaper" data-baby="b">${ico('diaper')}<span>חיתול</span></button>
-    <button class="log both" data-act="diaper" data-baby="both">${ico('diaper')}<span>חיתול</span></button>
-    ${sleepBtn('a')}${sleepBtn('b')}
-    <button class="log both ${sa&&sb?'on':''}" data-act="sleep" data-baby="both">${ico(sa&&sb?'wake':'sleep')}<span>${sa&&sb?'התעוררו':'נרדמו'}</span></button>
-  </section>`;
+  for(const k of ['a','b']){ const t=timers[k]; if(!t) continue;
+    h+=`<div class="tbar ${k} w"><span class="el tn" data-live="tel-${k}">0:00</span><div><b>${esc(nm(k))}</b> · ${SIDE[t.side]}<div class="meta" data-live="tmeta-${k}"></div></div>
+      <button data-tact="switch" data-baby="${k}">⇄ ${SIDE[t.side==='L'?'R':'L']}</button><button data-tact="stop" data-baby="${k}">סיום</button><button data-tact="cancel" data-baby="${k}" aria-label="ביטול השעון">✕</button></div>`; }
+  h+=`<div class="when w" role="group" aria-label="מתי קרה"><span class="lbl">מתי:</span>`+[[0,'עכשיו'],[10,'−10׳'],[20,'−20׳'],[30,'−30׳'],[60,'−1ש׳'],[120,'−2ש׳']].map(([o,l])=>`<button class="chip" data-off="${o}" aria-pressed="${offsetMin===o}" aria-label="${o?'לפני '+o+' דקות':'עכשיו'}">${l}</button>`).join('')+'</div>';
+  return h;
+}
+function nowBotHtml(){
   const recent=events.filter(e=>e.baby!=='mom').slice(0,4);
-  h+=`<h3 class="sec"><span class="grow">אחרונים</span><button class="sbtn" data-go="tl">כל הרישומים</button></h3>`;
-  h+= recent.length ? '<div class="list">'+recent.map(itemHtml).join('')+'</div>' : `<div class="empty">${loaded?'עוד אין רישומים. הקשה על כפתור שומרת אירוע עם השעה, ואפשר להשלים פרטים אחר כך.':'טוען רישומים…'}</div>`;
+  let h=`<h3 class="sec"><span class="grow">אחרונים</span><button class="sbtn" data-go="tl">יומן מלא</button></h3>`;
+  h+= recent.length ? '<div class="list">'+recent.map(itemHtml).join('')+'</div>' : `<div class="empty">${loaded?'עוד אין רישומים. הקשה על סמל במים שומרת אירוע עם השעה, ואפשר להשלים פרטים אחר כך.':'טוען רישומים…'}</div>`;
+  return h;
+}
+function wavePath(x0, w, y, amp, bottom){
+  let xs=Math.floor((x0-260)/130)*130, d=`M${xs} ${y} Q${xs+32.5} ${y-amp} ${xs+65} ${y}`;
+  for(let x=xs+130; x<=x0+w+390; x+=65) d+=` T${x} ${y}`;
+  return d+` V${bottom} H${xs} Z`;
+}
+const DROP = 'M60 8 C60 8 16 60 16 92 A44 44 0 0 0 104 92 C104 60 60 8 60 8 Z';
+const SMALL = 'M0 -11 C0 -11 -6.5 -2 -6.5 2.5 A6.5 6.5 0 0 0 6.5 2.5 C6.5 -2 0 -11 0 -11 Z';
+function buildStage(){
+  const st=$('#stage'); if(!st) return;
+  const W=Math.round(st.clientWidth)||390, SH=Math.round(st.clientHeight)||700; stageW=W; stageH=SH;
+  const half=W/2, depth=SH-112, bottom=SH+300;
+  const side=k=>{ const x0=k==='a'?half:0, cx=x0+half/2, other=k==='a'?-1:1;
+    const specks=[[-40,46,'#E9A23B'],[-12,88,'#7BA05B'],[22,60,'#C9603A'],[44,120,'#E9A23B'],[-30,150,'#7BA05B'],[8,190,'#C9603A']]
+      .map(([dx,dy,c],i)=>`<circle class="speck" cx="${cx+dx}" cy="${dy}" r="${i%2?2.2:2.8}" fill="${c}" opacity=".85" style="animation-delay:${-i*1.1}s"/>`).join('');
+    const spl=[[-46,-40,4],[-22,-66,3],[10,-72,3.5],[36,-54,2.5],[50,-22,4]].map(([dx,dy,r],i)=>`<circle r="${r}" style="fill:var(--${k}-${i%2?'w2':'drop'});opacity:0;--dx:${dx}px;--dy:${dy}px"/>`).join('');
+    const top = k==='a'
+      ? '<path d="M60 9 C58 -2 70 -4 70 4 C70 9 64 9 64 5" style="fill:none;stroke:var(--a-drop);stroke-width:5;stroke-linecap:round"/>'
+      : '<path d="M48 30 L36 22 L36 38 Z M48 30 L60 22 L60 38 Z" style="fill:var(--b-bow)"/><circle cx="48" cy="30" r="4" style="fill:var(--b-bow)"/>';
+    return `<g class="side side-${k}" id="side-${k}" clip-path="url(#c-${k})">
+      <rect class="air" id="air-${k}" x="${x0}" y="0" width="${half}" height="${SH}" style="fill:var(--air)"/>
+      <g id="drip-${k}" style="display:none" transform="translate(${cx} 0)"><path class="dripfall" id="dripp-${k}" d="${SMALL}" style="fill:var(--${k}-w2)"/></g>
+      <g class="lv" id="lv-${k}" style="transform:translateY(${depth-60}px)">
+        <g class="wv2"><path d="${wavePath(x0,half,-4,7,bottom)}" style="fill:var(--${k}-back)"/></g>
+        <ellipse class="pulse" id="pulse-${k}" cx="${cx}" cy="-30" rx="44" ry="44" style="display:none;fill:none;stroke:var(--${k}-w3);stroke-width:1.2"/>
+        <g transform="translate(${cx} 12)"><g class="sink" id="sink-${k}"><g class="bob" id="bob-${k}"><g transform="translate(-36 -82) scale(0.6)">
+          <path d="${DROP}" style="fill:var(--${k}-drop)"/>${top}
+          <path id="fs-${k}" class="facel" d="M40 93 Q46 98 52 93 M68 93 Q74 98 80 93" style="display:none"/>
+          <g id="fo-${k}" class="blink"><g class="eyes" id="eyes-${k}"><circle class="face" cx="46" cy="92" r="5"/><circle class="face" cx="74" cy="92" r="5"/></g></g>
+          <path id="fc-${k}" class="facel" d="M53 106 Q60 112 67 106"/>
+          <path id="ff-${k}" class="facel" d="M50 110 Q55 105 60 110 Q65 115 70 110" style="display:none"/>
+          <path id="tear-${k}" class="face tear" d="M${k==='a'?42:78} 100 c0 0 -4 6 -4 9 a4 4 0 0 0 8 0 c0 -3 -4 -9 -4 -9z" style="display:none"/>
+          <path id="leak-${k}" class="leak" d="M60 140 c0 0 -6 8 -6 11 a6 6 0 0 0 12 0 c0 -3 -6 -11 -6 -11z" style="display:none;fill:var(--${k}-drop)"/>
+        </g></g></g></g>
+        <g class="wv"><path class="front" d="${wavePath(x0,half,0,8,bottom)}" style="fill:url(#w-${k})"/></g>
+        <g id="food-${k}" style="display:none">${specks}</g>
+        <ellipse id="rip-${k}" cx="${cx}" cy="2" rx="40" ry="6" style="fill:none;stroke:var(--face);stroke-width:1.5;opacity:0"/>
+        <ellipse id="rip2-${k}" cx="${cx}" cy="2" rx="40" ry="6" style="fill:none;stroke:var(--face);stroke-width:1;opacity:0"/>
+        <g transform="translate(${cx} -26)"><g id="spl-${k}">${spl}</g></g>
+        <g id="ice-${k}" style="display:none"><rect class="ice" x="${x0}" y="-8" width="${half}" height="${bottom}"/>
+          <path class="ice-l" d="M${cx-50} 30 l18 -12 l14 16 l20 -10 M${cx+10} 70 l16 10 l-6 18 M${cx-30} 110 l-10 14 l14 8"/></g>
+        <text class="rd" id="rd-${k}" x="${k==='a'?half+9:half-9}" y="-10" text-anchor="${k==='a'?'start':'end'}">—:—</text>
+        <text class="rdl" id="rdl-${k}" x="${k==='a'?half+9:half-9}" y="9" text-anchor="${k==='a'?'start':'end'}">מהאכלה</text>
+      </g>
+      <rect x="${x0}" y="${depth-24}" width="${half}" height="${SH-depth+24}" style="fill:url(#d-${k})"/>
+    </g>`; };
+  const Y0=Math.min(200,SH*.3), Y1=depth-56;
+  const ticks=[0,1,2,3,4,5,6].map(i=>{ const y=Y0+(Y1-Y0)*i/6, l=i%2?4:8; return `<line x1="${half-l}" x2="${half+l}" y1="${y}" y2="${y}"/>`; }).join('');
+  const dock=k=>`<div class="dock ${k}">`+[['feed','האכלה'],['nurse','הנקה'],['diaper','חיתול'],['sleep','שינה']].map(([a,l])=>
+    `<button data-sact="${a}" data-k="${k}" id="dk-${a}-${k}" aria-label="${l} · ${esc(nm(k))}"><svg viewBox="0 0 24 24" aria-hidden="true">${a==='sleep'?`<g id="dks-${k}">${DOCK_I.sleep}</g><g id="dkw-${k}" style="display:none">${DOCK_I.wake}</g>`:DOCK_I[a]}</svg><span>${l}</span></button>`).join('')+'</div>';
+  st.innerHTML=`<svg class="stg" viewBox="0 0 ${W} ${SH}" role="img" aria-label="" id="stg">
+    <defs>
+      ${['a','b'].map(k=>`<linearGradient id="w-${k}" x1="0" x2="0" y1="0" y2="1"><stop offset="0" class="stop-${k}1"/><stop offset=".55" class="stop-${k}2"/><stop offset="1" class="stop-${k}3"/></linearGradient>
+      <linearGradient id="d-${k}" x1="0" x2="0" y1="0" y2="1"><stop offset="0" class="stop-${k}3" stop-opacity="0"/><stop offset=".3" class="stop-${k}3"/><stop offset="1" class="stop-${k}d"/></linearGradient>`).join('')}
+      <clipPath id="c-a"><rect x="${half}" y="0" width="${half}" height="${SH}"/></clipPath><clipPath id="c-b"><rect x="0" y="0" width="${half}" height="${SH}"/></clipPath>
+    </defs>
+    ${side('a')}${side('b')}
+    <line id="staff" class="staff" x1="${half}" x2="${half}" y1="0" y2="${SH}" style="stroke-opacity:.25;stroke-width:1"/>
+    <g class="staff" style="stroke-width:1">${ticks}</g>
+  </svg>
+  <div class="labels" aria-hidden="true">${['a','b'].map(k=>`<div class="l${k}"><div class="nm">${esc(nm(k))}</div><div class="ln" id="ln1-${k}"></div><div class="ln" id="ln2-${k}"></div><div class="ln" id="ln3-${k}"></div></div>`).join('')}</div>
+  <button class="x2 round" data-both aria-pressed="false" aria-label="הפעולה הבאה לשניהם" style="top:${depth-62}px">×2</button>
+  ${dock('a')}${dock('b')}`;
+}
+const show=(id,on)=>{ const el=document.getElementById(id); if(el) el.style.display=on?'':'none'; };
+const setTxt=(id,t)=>{ const el=document.getElementById(id); if(el && el.textContent!==t) el.textContent=t; };
+function fitStage(){ const st=$('#stage'); if(!st) return; const top=st.getBoundingClientRect().top+window.scrollY; const tabs=document.querySelector('nav.tabs')?.offsetHeight||60;
+  st.style.height=Math.round(Math.max(460,Math.min(900,window.innerHeight-top-tabs)))+'px'; }
+function updateStage(){
+  const st=$('#stage'); if(!st) return;
+  if(!stageW || Math.abs(st.clientWidth-stageW)>2 || Math.abs(st.clientHeight-stageH)>2) buildStage();
+  const now=Date.now(), SH=stageH, depth=SH-112, Y0=Math.min(200,SH*.3), Y1=depth-56;
+  const Y=h=>Y0+Math.min(Math.max(h,0)/3,1)*(Y1-Y0);
+  const d0=new Date(); d0.setHours(0,0,0,0);
+  const aria=[];
+  for(const k of ['a','b']){
+    const f=lastOf(k,'feed'), tm=timers[k], s=openSleep(k), d=lastOf(k,'diaper'), w=lastWake(k), sug=suggestSide(k);
+    const since=f?now-f.t:null;
+    let hrs=since==null?1.5:since/H;
+    if(tm){ hrs=hrs*(1-Math.min(1,(now-tm.startedAt)/(15*M))); }
+    const y=Y(hrs);
+    const lv=document.getElementById('lv-'+k); if(lv) lv.style.transform=`translateY(${y}px)`;
+    const sk=document.getElementById('sink-'+k); if(sk) sk.style.transform=`translateY(${s?30:0}px)`;
+    document.getElementById('bob-'+k)?.classList.toggle('slow',!!s);
+    const air=document.getElementById('air-'+k); if(air) air.style.fill=s?'var(--air-sleep)':'var(--air)';
+    const hungry = since!=null && !s && !tm && hrs>=2.5;
+    show('fs-'+k,!!s); show('fo-'+k,!s); show('fc-'+k,!s && !hungry); show('ff-'+k,hungry);
+    show('tear-'+k, hungry && hrs>=2.75);
+    show('pulse-'+k,!!tm);
+    show('drip-'+k,!!tm); const dp=document.getElementById('dripp-'+k); if(dp){ dp.style.setProperty('--from','110px'); dp.style.setProperty('--to',(y-14)+'px'); }
+    show('leak-'+k, !!d && now-d.t>4*H);
+    const bath=ofBaby(k).find(e=>e.type==='care'&&e.care==='bath');
+    show('food-'+k, solids.some(x=>x.baby===k && x.t>=d0.getTime() && x.t>(bath?.t||0)));
+    const fz=frozenK(k); document.getElementById('side-'+k)?.classList.toggle('frozen',fz); show('ice-'+k,fz);
+    setTxt('rd-'+k, tm?clock(now-tm.startedAt):since!=null?hm(since):'—:—');
+    setTxt('rdl-'+k, tm?'הנקה ▸':since!=null?'מהאכלה':'אין האכלה רשומה');
+    setTxt('ln1-'+k, 'חיתול · '+(d?hm(now-d.t):'—'));
+    setTxt('ln2-'+k, tm?'הנקה · '+SIDE[tm.side] : s?g(k,'ישן','ישנה')+' · '+hm(now-s.t) : g(k,'ער','ערה')+' · '+(w?hm(now-w):'—'));
+    setTxt('ln3-'+k, !tm && sug ? 'צד הבא · '+SIDE[sug] : '');
+    const nb=document.getElementById('dk-nurse-'+k); if(nb){ nb.classList.toggle('on',!!tm); nb.querySelector('span').textContent=tm?'סיום':'הנקה'; }
+    const sb=document.getElementById('dk-sleep-'+k); if(sb){ sb.classList.toggle('on',!!s); sb.querySelector('span').textContent=s?g(k,'קם','קמה'):'שינה'; sb.setAttribute('aria-label',(s?g(k,'התעורר','התעוררה'):g(k,'נרדם','נרדמה'))+' · '+nm(k)); }
+    show('dks-'+k,!s); show('dkw-'+k,!!s);
+    aria.push(`${nm(k)}: ${since!=null?hm(since)+' מהאכלה':'אין האכלה רשומה'}, ${s?g(k,'ישן','ישנה'):g(k,'ער','ערה')}`);
+  }
+  const x2=$('#stage .x2'); if(x2) x2.setAttribute('aria-pressed',bothMode);
+  const sf=document.getElementById('staff'); if(sf){ sf.style.strokeWidth=bothMode?3:1; sf.style.strokeOpacity=bothMode?.9:.25; }
+  $('#stg')?.setAttribute('aria-label',aria.join('. '));
+}
+function stageFx(k,kind){
+  const list=[['rip-'+k,'rip'],['rip2-'+k,'rip2']]; if(kind==='spl') list.push(['spl-'+k,'spl']);
+  for(const [id,c] of list){ const el=document.getElementById(id); if(!el) continue; el.classList.remove(c); void el.getBoundingClientRect(); el.classList.add(c); }
+}
+/* the drops watch each other: the awake one peeks at a sleeping twin, otherwise they look at each other or pointedly away */
+let glanceT=0;
+function glance(force){
+  if(tab!=='now' || document.hidden) return;
+  const sa=!!openSleep('a'), sb=!!openSleep('b');
+  const look=(k,dir)=>{ const e=document.getElementById('eyes-'+k); if(e) e.style.transform=`translateX(${dir*4}px)`; };
+  const toward={a:-1,b:1};
+  if(force==='both'){ look('a',toward.a); look('b',toward.b); }
+  else if(sa!==sb){ const awake=sa?'b':'a'; look(awake,toward[awake]); }
+  else { const r=Math.random(); if(r<.35){ look('a',toward.a); look('b',toward.b); } else if(r<.6){ const k=Math.random()<.5?'a':'b'; look(k,-toward[k]); look(k==='a'?'b':'a',toward[k==='a'?'b':'a']); } else { look('a',0); look('b',0); } }
+  clearTimeout(glanceT); glanceT=setTimeout(()=>{ look('a',0); look('b',0); },2200);
+}
+setInterval(glance,7000);
+window.addEventListener('resize',()=>{ if(tab==='now'){ fitStage(); updateStage(); } });
+
+/* ---------- Duel: communicating vessels ---------- */
+const dropMini=(k,happy,tf)=>`<g transform="${tf}"><g class="bob"><g transform="translate(-22 -48) scale(0.36)">
+  <path d="${DROP}" style="fill:var(--${k}-drop)"/>${k==='a'?'<path d="M60 9 C58 -2 70 -4 70 4 C70 9 64 9 64 5" style="fill:none;stroke:var(--a-drop);stroke-width:6;stroke-linecap:round"/>':'<path d="M48 30 L36 22 L36 38 Z M48 30 L60 22 L60 38 Z" style="fill:var(--b-bow)"/>'}
+  ${happy?'<path class="facel" style="stroke-width:5" d="M40 94 Q46 88 52 94 M68 94 Q74 88 80 94"/><path class="face" d="M50 104 Q60 118 70 104 Z"/>'
+         :'<circle class="face" cx="46" cy="94" r="6"/><circle class="face" cx="74" cy="94" r="6"/><path class="facel" style="stroke-width:5" d="M50 112 H70"/>'}</g></g></g>`;
+function nightWindow(){ const s=new Date(); if(s.getHours()<12) s.setDate(s.getDate()-1); s.setHours(19,0,0,0); const e=new Date(s); e.setDate(e.getDate()+1); e.setHours(7,0,0,0); return [s.getTime(), e.getTime()]; }
+const deepNight = t => { const h=new Date(t).getHours(); return h>=22 || h<6; };
+function viewDuel(){
+  const now=Date.now(); const d0=new Date(); d0.setHours(0,0,0,0); const from=d0.getTime();
+  const [n0,n1]=nightWindow();
+  const cnt=(k,f)=>ofBaby(k).filter(e=>e.t>=from && f(e)).length;
+  const cats=[
+    ['burp','גרעפסים',k=>cnt(k,e=>e.type==='burp'),true],
+    ['dirty','קקי',k=>cnt(k,isDirty)],
+    ['spit','פליטות',k=>cnt(k,e=>e.type==='spit'),true],
+    ['night','הקפיצו בלילה',k=>ofBaby(k).filter(e=>e.type==='sleep'&&e.end&&e.end>=n0&&e.end<Math.min(n1,now)&&deepNight(e.end)).length]
+  ].map(([id,l,f,plus])=>({id,l,plus,a:f('a'),b:f('b')}));
+  const sa=cats.reduce((x,c)=>x+c.a,0), sb=cats.reduce((x,c)=>x+c.b,0);
+  const mx=Math.max(8, Math.ceil(Math.max(sa,sb)/4)*4);
+  const lvY=v=>262-v/mx*242;
+  const ya=lvY(sa), yb=lvY(sb);
+  let h=`<div class="wrap" style="gap:10px"><div class="duel-h"><h2>הקרב</h2><span>${pad(d0.getDate())}.${pad(d0.getMonth()+1)} · 00:00–${hhmm(now)}</span></div>
+  <svg class="vessels" viewBox="0 0 390 300" role="img" aria-label="כלים שלובים: ${esc(nm('a'))} ${sa}, ${esc(nm('b'))} ${sb}">
+    <defs><linearGradient id="vA" x1="0" x2="0" y1="0" y2="1"><stop offset="0" class="stop-a2"/><stop offset="1" class="stop-a3"/></linearGradient>
+      <linearGradient id="vB" x1="0" x2="0" y1="0" y2="1"><stop offset="0" class="stop-b2"/><stop offset="1" class="stop-b3"/></linearGradient>
+      <linearGradient id="vMix" x1="0" x2="1" y1="0" y2="0"><stop offset=".2" class="stop-b3"/><stop offset=".8" class="stop-a3"/></linearGradient></defs>
+    <g style="stroke:var(--fg);stroke-width:1;stroke-opacity:.35">${[0,1,2,3,4,5,6,7,8].map(i=>{ const y=262-i*30.25; return `<line x1="${i%2?186:176}" x2="${i%2?204:214}" y1="${y}" y2="${y}"/>`; }).join('')}</g>
+    <g style="font-family:var(--mono);font-size:10px;fill:var(--fg)" text-anchor="middle">${[0,2,4,6,8].map(i=>`<text x="195" y="${262-i*30.25-4}">${mx*i/8}</text>`).join('')}</g>
+    <rect class="lvl" x="231" y="${ya}" width="58" height="${262-ya}" style="fill:url(#vA)"/>
+    <rect class="lvl" x="101" y="${yb}" width="58" height="${262-yb}" style="fill:url(#vB)"/>
+    <path d="M101 262 H289 V276 Q289 290 275 290 H115 Q101 290 101 276 Z" style="fill:url(#vMix)"/>
+    <path d="M100 16 V276 Q100 291 115 291 H275 Q290 291 290 276 V16 M160 16 V262 H230 V16" style="fill:none;stroke:var(--fg);stroke-width:1.2"/>
+    <line x1="290" x2="330" y1="${ya}" y2="${ya}" style="stroke:var(--fg);stroke-dasharray:2 3"/><line x1="60" x2="100" y1="${yb}" y2="${yb}" style="stroke:var(--fg);stroke-dasharray:2 3"/>
+    <text x="336" y="${ya+20}" style="font-family:var(--display);font-weight:300;font-size:58px;fill:var(--a)">${sa}</text>
+    <text x="54" y="${yb+20}" text-anchor="end" style="font-family:var(--display);font-weight:300;font-size:58px;fill:var(--b)">${sb}</text>
+    <text x="336" y="${ya+40}" style="font-family:var(--body);font-size:11px;fill:var(--fg)">${esc(nm('a'))}</text>
+    <text x="54" y="${yb+40}" text-anchor="end" style="font-family:var(--body);font-size:11px;fill:var(--fg)">${esc(nm('b'))}</text>
+    ${dropMini('a', sa>=sb, `translate(260 ${ya+6})`)}${dropMini('b', sb>=sa, `translate(130 ${yb+6})`)}
+  </svg>
+  <section class="tide-t" aria-label="קטגוריות היום"><div class="tide-r hd"><span>א׳</span><span class="c">היום</span><span style="text-align:left">ב׳</span></div>`;
+  const plus=(c,k)=>c.plus?`<button class="plus w" data-quick="${c.id}" data-baby="${k}" aria-label="${c.id==='burp'?'גרעפס':'פליטה'} ל${esc(nm(k))}">+</button>`:'';
+  for(const c of cats){
+    const wa=c.a>c.b, wb=c.b>c.a;
+    h+=`<div class="tide-r"><span class="va ${wa?'win':''}">${c.a}${wa?' ●':''}${plus(c,'a')}</span><span class="c">${c.l}${c.a===c.b&&c.a?' <small>= תיקו</small>':''}</span><span class="vb ${wb?'win':''}">${plus(c,'b')}${wb?'● ':''}${c.b}</span></div>`;
+  }
+  const mo=momentOfDay(from);
+  h+=`</section><p class="moment">${mo?`<span class="mono">${hhmm(mo.t)} · </span>${esc(mo.txt)}`:'<span class="note">הרגע של היום יופיע כשיהיו רישומים.</span>'}</p>`;
+  h+=parentsLeague();
   return h+'</div>';
 }
+function momentOfDay(from){
+  const now=Date.now(); const out=[];
+  for(const k of ['a','b']){
+    for(const [type,word] of [['burp','גרעפסים'],['spit','פליטות']]){
+      const today=ofBaby(k).filter(e=>e.type===type&&e.t>=from);
+      if(!today.length) continue;
+      let prev=0; for(let i=1;i<=13;i++){ const s=from-i*D; prev=Math.max(prev, ofBaby(k).filter(e=>e.type===type&&e.t>=s&&e.t<s+D).length); }
+      if(prev>0 && today.length>prev) out.push({t:today[0].t, txt:`${today.length} ${word} של ${nm(k)} היום. ${g(k,'השיא שלו','השיא שלה')} מאז שמתעדים (עד היום ${prev}).`});
+    }
+  }
+  if(out.length) return out[0];
+  let best=null;
+  for(const k of ['a','b']) for(const e of ofBaby(k).filter(e=>e.type==='sleep'&&e.end&&e.end>=from)){ const len=e.end-e.t; if(!best||len>best.len) best={k,e,len}; }
+  if(best && best.len>=20*M) return {t:best.e.end, txt:`השינה הארוכה היום: ${nm(best.k)}, ${hm(best.len)} (${hhmm(best.e.t)}–${hhmm(best.e.end)}).`};
+  const fa=ofBaby('a').filter(e=>e.type==='feed'&&e.t>=from).length, fb=ofBaby('b').filter(e=>e.type==='feed'&&e.t>=from).length;
+  if(fa||fb) return {t:now, txt:fa===fb?`תיקו בהאכלות: ${fa} לכל אחד.`:`${fa>fb?nm('a'):nm('b')} ${fa>fb?g('a','מוביל','מובילה'):g('b','מוביל','מובילה')} בהאכלות היום, ${Math.max(fa,fb)} מול ${Math.min(fa,fb)}.`};
+  return null;
+}
+function parentsLeague(){
+  const from=Date.now()-7*D;
+  const ev=events.filter(e=>e.t>=from && e.by && e.baby!=='mom');
+  const ids=[...new Set(ev.map(e=>e.by))].slice(0,3);
+  if(!ids.length) return '<section class="tide-t" style="margin-top:18px"><p class="note" style="margin:10px 0">ליגת ההורים מתחילה כשכל אחד רושם מהטלפון שלו.</p></section>';
+  const rows=[['חיתולים',e=>e.type==='diaper'],['האכלות בלילה',e=>e.type==='feed'&&deepNight(e.t)],['הרדמות',e=>e.type==='sleep']];
+  let h=`<section aria-label="ליגת ההורים, 7 ימים" style="margin-top:18px"><div class="league hd" style="--n:${ids.length}"><span>הורים · 7 ימים</span>${ids.map(id=>`<span>${esc(whoTxt(id)||'הורה')}</span>`).join('')}</div>`;
+  for(const [l,f] of rows){ const v=ids.map(id=>ev.filter(e=>e.by===id&&f(e)).length); const mx=Math.max(...v);
+    h+=`<div class="league" style="--n:${ids.length}"><span>${l}</span>${v.map(x=>`<span style="${x===mx&&x>0&&v.filter(y=>y===mx).length===1?'font-weight:600':''}">${x}</span>`).join('')}</div>`; }
+  return h+'</section>';
+}
+
+/* ---------- Report: the same numbers, as water ---------- */
+function gaugesHtml(from,to){
+  const W=358, span=Math.max(1,to-from), X=t=>Math.max(0,Math.min(W,(t-from)/span*W));
+  const ticks=[0,.25,.5,.75,1].map((f,i)=>({x:f*W, l:hhmm(from+f*span), a:i===0?'start':i===4?'end':'middle'}));
+  const nights=[]; { const s=new Date(from); s.setHours(19,0,0,0); s.setDate(s.getDate()-1);
+    for(let t=s.getTime(); t<to; t+=D){ const a=Math.max(t,from), b=Math.min(t+12*H,to); if(b>a) nights.push([X(a),X(b)]); } }
+  const tick=y=>ticks.map(t=>`<text x="${t.x}" y="${y}" text-anchor="${t.a}">${t.l}</text>`).join('');
+  // tide: sleep, A above the line, B below
+  const sl=k=>ofBaby(k).filter(e=>e.type==='sleep'&&(e.end||Date.now())>from&&e.t<to);
+  const band=(k,up)=>sl(k).map(e=>{ const x1=X(e.t), x2=X(e.end||Date.now()); const w=Math.max(1.5,x2-x1); return up?`M${x1} 92 V14 Q${x1+w/2} 6 ${x1+w} 14 V92 Z`:`M${x1} 92 V170 Q${x1+w/2} 178 ${x1+w} 170 V92 Z`; }).join(' ');
+  const A=stats('a',from,to), B=stats('b',from,to);
+  let h=`<section><div class="gauge-h"><b>גאות ושפל</b><span>שינה</span></div>
+    <div class="big2"><div class="a"><div class="n">${hm(A.sleepDay+A.sleepNight)}</div><small>${esc(nm('a'))} · לילה ${hm(A.sleepNight)}</small></div><div class="b"><div class="n">${hm(B.sleepDay+B.sleepNight)}</div><small>${esc(nm('b'))} · לילה ${hm(B.sleepNight)}</small></div></div>
+    <svg class="gauge" viewBox="0 0 ${W} 200" role="img" aria-label="שינה לאורך הזמן: ${esc(nm('a'))} מעל הקו, ${esc(nm('b'))} מתחתיו">
+      ${nights.map(([a,b])=>`<rect x="${a}" y="0" width="${b-a}" height="184" style="fill:var(--surface-2)"/>`).join('')}
+      <path d="${band('a',true)}" style="fill:var(--a)"/><path d="${band('b',false)}" style="fill:var(--b)"/>
+      <line x1="0" x2="${W}" y1="92" y2="92" style="stroke:var(--fg);stroke-opacity:.3"/>
+      ${ticks.map(t=>`<line x1="${t.x}" x2="${t.x}" y1="184" y2="190" style="stroke:var(--fg)"/>`).join('')}${tick(200)}
+    </svg></section>`;
+  // drip: feeds
+  const fd=k=>ofBaby(k).filter(e=>e.type==='feed'&&e.t>=from&&e.t<to).sort((x,y)=>x.t-y.t);
+  const fa=fd('a'), fb=fd('b');
+  const gap=xs=>xs.length<2?'—':hm((xs[xs.length-1].t-xs[0].t)/(xs.length-1));
+  const drops=(xs,y,k)=>xs.map(e=>`<path transform="translate(${X(e.t)} ${y})" d="${SMALL}" style="fill:var(--${k})"/>`).join('');
+  h+=`<section style="padding-top:22px"><div class="gauge-h"><b>טפטוף</b><span>האכלות</span></div>
+    <svg class="gauge" viewBox="0 0 ${W} 104" role="img" aria-label="האכלות: ${esc(nm('a'))} ${fa.length}, ${esc(nm('b'))} ${fb.length}">
+      <line x1="0" x2="${W}" y1="34" y2="34" style="stroke:var(--fg);stroke-opacity:.25"/><line x1="0" x2="${W}" y1="80" y2="80" style="stroke:var(--fg);stroke-opacity:.25"/>
+      ${drops(fa,28,'a')}${drops(fb,74,'b')}${tick(102)}
+    </svg>
+    <div class="two" style="font-size:13px;margin-top:8px"><span><b class="mono">${fa.length}</b> טיפות · מרווח <span class="mono">${gap(fa)}</span></span><span style="text-align:left"><b class="mono">${fb.length}</b> טיפות · מרווח <span class="mono">${gap(fb)}</span></span></div></section>`;
+  // rain gauge: diapers
+  const th=+(cfg.th?.wet||6), full=span>=23*H;
+  const mx=Math.max(8, A.wet, B.wet, A.dirty, B.dirty, full?th:0);
+  const RY=v=>190-v/mx*180;
+  const col=(x,v,k,fill)=>`<rect x="${x}" y="${RY(v)}" width="22" height="${190-RY(v)}" style="${fill?`fill:var(--${k})`:`fill:none;stroke:var(--${k});stroke-width:1.2`}"/>`;
+  const leaks=['a','b'].filter(k=>{ const d=lastOf(k,'diaper'); return d && Date.now()-d.t>4*H; });
+  h+=`<section style="padding-top:22px"><div class="gauge-h"><b>מד גשם</b><span>חיתולים</span></div>
+    <div class="rain"><svg class="gauge" viewBox="0 0 150 200" role="img" aria-label="${esc(nm('a'))} ${A.wet} רטובים ו־${A.dirty} קקי, ${esc(nm('b'))} ${B.wet} רטובים ו־${B.dirty} קקי">
+      ${[0,.25,.5,.75,1].map(f=>{ const v=Math.round(mx*f); return `<line x1="22" x2="30" y1="${RY(v)}" y2="${RY(v)}" style="stroke:var(--fg)"/><text x="16" y="${RY(v)+3}" text-anchor="end">${v}</text>`; }).join('')}
+      ${col(40,A.wet,'a',true)}${col(66,A.dirty,'a',false)}${col(92,B.wet,'b',true)}${col(118,B.dirty,'b',false)}
+      ${full?`<line x1="30" x2="146" y1="${RY(th)}" y2="${RY(th)}" style="stroke:var(--fg);stroke-dasharray:2 3"/>`:''}
+      <line x1="30" x2="146" y1="190" y2="190" style="stroke:var(--fg)"/>
+    </svg><div style="display:flex;flex-direction:column;gap:8px">
+      <div><span style="display:inline-block;width:10px;height:10px;background:var(--fg);vertical-align:middle"></span> רטוב &nbsp; <span style="display:inline-block;width:10px;height:10px;border:1px solid var(--fg);vertical-align:middle"></span> קקי</div>
+      <div><span style="color:var(--a)">${esc(nm('a'))}</span> <span class="mono">${A.wet}/${A.dirty}</span> · <span style="color:var(--b)">${esc(nm('b'))}</span> <span class="mono">${B.wet}/${B.dirty}</span></div>
+      ${full?`<div>קו מקווקו: ${th} רטובים ביממה.</div>`:'<div class="note">קו הסף מוצג בחלונות של 24 שעות.</div>'}
+      ${leaks.length?`<div style="border-top:1px solid var(--hair);padding-top:8px"><b>דליפה.</b> ${leaks.map(k=>`${esc(nm(k))}: ${hm(Date.now()-lastOf(k,'diaper').t)} מהחיתול האחרון`).join(' · ')}.</div>`:''}
+    </div></div></section>`;
+  return h;
+}
+
 function syncHint(){
   const now=Date.now();
   for(const [k,o] of [['a','b'],['b','a']]){
@@ -256,7 +510,7 @@ function syncHint(){
 function itemHtml(e){
   const who=whoTxt(e.by);
   return `<button class="item" data-id="${e.id}"><span class="time tn">${hhmm(e.t)}</span>
-    <span class="what"><b>${label(e)}</b><span class="sub tn">${esc(summary(e))}${who?' · '+esc(who):''}</span></span>
+    <span class="what"><b>${label(e)}</b><span class="sub tn">${esc([summary(e),who].filter(Boolean).join(' · '))}</span></span>
     <span class="tag ${e.baby}">${esc(nm(e.baby))}</span></button>`;
 }
 function viewTimeline(){
@@ -287,9 +541,11 @@ function viewSummary(){
   const [from,to,lbl]=sumWindow();
   const A=stats('a',from,to), B=stats('b',from,to);
   const rows=[['האכלות',x=>x.feeds],['דקות הנקה',x=>x.nurseMin||'—'],['בקבוק (מ״ל ששתה)',x=>x.ml||'—'],['חיתולים רטובים',x=>x.wet],['חיתולי קקי',x=>x.dirty],['סך חיתולים',x=>x.diapers],['שינת יום',x=>x.sleepDay?dur(x.sleepDay):'—'],['שינת לילה',x=>x.sleepNight?dur(x.sleepNight):'—'],['התעוררויות',x=>x.wakings||'—'],['תרופות שניתנו',x=>x.meds||'—']];
-  let h=`<div class="wrap" style="gap:12px"><h3 class="sec">סיכום</h3>
+  let h=`<div class="wrap" style="gap:12px"><div class="duel-h"><h2>דו״ח</h2></div>
     <div class="chips" role="group">${[['night','מה היה בלילה'],['12','12 ש׳'],['24','24 ש׳'],['today','היום'],['yest','אתמול']].map(([v,l])=>`<button class="chip" data-sum="${v}" aria-pressed="${sumMode===v}">${l}</button>`).join('')}</div>
     <p class="note">${lbl}${to<from?'':' · '+hhmm(from)+'–'+hhmm(to)}</p>
+    ${gaugesHtml(from,to)}
+    <h3 class="sec">במספרים</h3>
     <div class="tbl-wrap"><table><thead><tr><th></th><th><span class="dot a"></span> ${esc(nm('a'))}</th><th><span class="dot b"></span> ${esc(nm('b'))}</th></tr></thead><tbody>
     ${rows.map(([l,f])=>`<tr><th scope="row">${l}</th><td>${f(A)}</td><td>${f(B)}</td></tr>`).join('')}</tbody></table></div>`;
   const notes=[...A.notes,...B.notes].sort((x,y)=>x.t-y.t);
@@ -411,9 +667,9 @@ function viewMilk(){
 }
 
 function viewMore(){
-  const subs=[['milk','חלב'],['food','מזון מוצק'],['home','בית'],['parents','הורים'],['report','דוח לרופא']];
+  const subs=[['health','בריאות'],['milk','חלב'],['food','מזון מוצק'],['home','בית'],['parents','הורים'],['report','דוח לרופא']];
   return `<div class="wrap" style="gap:12px"><div class="seg" role="group" aria-label="קטגוריה">${subs.map(([v,l])=>`<button data-more="${v}" aria-pressed="${moreSub===v}">${l}</button>`).join('')}</div>`
-    + (moreSub==='milk'?viewMilk(): moreSub==='food'?viewFood(): moreSub==='home'?viewHome(): moreSub==='parents'?viewParents(): viewReport()) + '</div>';
+    + (moreSub==='health'?viewHealth(): moreSub==='milk'?viewMilk(): moreSub==='food'?viewFood(): moreSub==='home'?viewHome(): moreSub==='parents'?viewParents(): viewReport()) + '</div>';
 }
 function viewFood(){
   let h=`<h3 class="sec">מזון מוצק</h3><div class="actions w"><button class="btn a" data-solid-new="a">טעימה ל${esc(nm('a'))}</button><button class="btn b" data-solid-new="b">טעימה ל${esc(nm('b'))}</button></div>`;
@@ -627,6 +883,7 @@ function tick(){
   for(const k of ['a','b']){ const t=timers[k]; if(!t) continue;
     const now=Date.now(), cur=now-t.segStart, L=(t.L||0)+(t.side==='L'?cur:0), R=(t.R||0)+(t.side==='R'?cur:0);
     const el=document.querySelector(`[data-live="tel-${k}"]`); if(el) el.textContent=clock(cur);
+    const rd=document.getElementById('rd-'+k); if(rd) rd.textContent=clock(now-t.startedAt);
     const mt=document.querySelector(`[data-live="tmeta-${k}"]`); if(mt) mt.textContent=`סה״כ ${clock(now-t.startedAt)} · שמאל ${clock(L)} · ימין ${clock(R)}`;
   }
 }
@@ -663,9 +920,9 @@ async function act(type, baby){
     const open=babies.map(openSleep);
     const waking = baby==='both' ? open.every(Boolean) : !!open[0];
     if(waking){ const ids=[]; for(const s of open){ if(s){ ids.push(s.id); await patchEvent(s.id,{end:Math.max(t,s.t+M)}); } }
-      toast({msg:(baby==='both'?'שניהם התעוררו':nm(baby)+' התעורר/ה')+' · '+hhmm(t), undo:async()=>{ for(const id of ids) await patchEvent(id,{end:null}); }, edit:ids[0]});
+      toast({msg:(baby==='both'?'שניהם התעוררו':nm(baby)+' '+g(baby,'התעורר','התעוררה'))+' · '+hhmm(t), undo:async()=>{ for(const id of ids) await patchEvent(id,{end:null}); }, edit:ids[0]});
     } else { const ids=[]; for(const k of babies){ if(!openSleep(k)){ const id=await addDoc('events',{type:'sleep',baby:k,t,end:null,period:isNight(t)?'night':'day'}); if(id) ids.push(id);} }
-      if(ids.length) toast({msg:(baby==='both'?'שניהם נרדמו':nm(baby)+' נרדם/ה')+' · '+hhmm(t), undo:()=>removeEvents(ids), quick:{field:'loc', opts:[['crib','מיטה'],['bassinet','עריסה'],['arms','ידיים'],['stroller','עגלה']]}, ids}); }
+      if(ids.length) toast({msg:(baby==='both'?'שניהם נרדמו':nm(baby)+' '+g(baby,'נרדם','נרדמה'))+' · '+hhmm(t), undo:()=>removeEvents(ids), quick:{field:'loc', opts:[['crib','מיטה'],['bassinet','עריסה'],['arms','ידיים'],['stroller','עגלה']]}, ids}); }
     return;
   }
   const extra = (type==='feed'&&baby==='both') ? {together:true} : {};
@@ -675,7 +932,8 @@ async function act(type, baby){
   if(type==='feed'){ const sug=baby==='both'?null:suggestSide(baby);
     quick={field:'side', opts: baby==='both' ? [['both','הנקה'],['bottle','בקבוק']] : [['L','שמאל'+(sug==='L'?' ✓':'')],['R','ימין'+(sug==='R'?' ✓':'')],['bottle','בקבוק']]}; }
   if(type==='diaper') quick={field:'kind', opts:[['wet','רטוב'],['dirty','קקי'],['mixed','שניהם'],['dry','יבש']]};
-  toast({msg:TYPE[type]+' · '+(baby==='both'?'שניהם':nm(baby))+' · '+hhmm(t), undo:()=>removeEvents(ids), quick, ids, edit:ids.length===1?ids[0]:null});
+  const extraBtns = type==='feed' ? [['burp','+ גרעפס'],['spit','+ פליטה']].map(([ty,l])=>[l,()=>quickLog(ty,baby)]) : null;
+  toast({msg:TYPE[type]+' · '+(baby==='both'?'שניהם':nm(baby))+' · '+hhmm(t), undo:()=>removeEvents(ids), quick, ids, edit:ids.length===1?ids[0]:null, extra:extraBtns});
 }
 
 /* timers */
@@ -704,9 +962,10 @@ let toastTimer=null;
 function hideToast(){ $('#toast').hidden=true; clearTimeout(toastTimer); }
 function arm(ms){ clearTimeout(toastTimer); toastTimer=setTimeout(hideToast,ms); }
 const toastMsg = msg => toast({msg});
-function toast({msg, undo, quick, ids, edit}){
+async function quickLog(type, baby){ const ks=baby==='both'?['a','b']:[baby]; const ids=[]; for(const k of ks){ const id=await addDoc('events',{type,baby:k,t:Date.now()}); if(id) ids.push(id); } return ids; }
+function toast({msg, undo, quick, ids, edit, extra}){
   const box=$('#toast .in');
-  box.innerHTML=`<div class="r"><span class="msg tn"></span>${edit?'<button class="undo" data-t="edit">פרטים</button>':''}${undo?'<button class="undo" data-t="undo">ביטול</button>':''}</div>${quick?'<div class="quick"></div>':''}`;
+  box.innerHTML=`<div class="r"><span class="msg tn"></span>${edit?'<button class="undo" data-t="edit">פרטים</button>':''}${undo?'<button class="undo" data-t="undo">ביטול</button>':''}</div>${quick?'<div class="quick"></div>':''}${extra?'<div class="quick extra"></div>':''}`;
   box.querySelector('.msg').textContent=msg;
   if(undo) box.querySelector('[data-t="undo"]').onclick=async()=>{ hideToast(); await undo(); };
   if(edit) box.querySelector('[data-t="edit"]').onclick=()=>{ hideToast(); editEvent(edit); };
@@ -717,7 +976,8 @@ function toast({msg, undo, quick, ids, edit}){
         if(v==='bottle'){ const k=events.find(e=>e.id===ids[0])?.baby; const lb=lastBottle(k); if(lb){ data.ml=lb.ml; if(lb.milk) data.milk=lb.milk; } }
         for(const id of ids) await patchEvent(id,data); arm(4000); };
       q.appendChild(b); }); }
-  $('#toast').hidden=false; arm(quick?9000:6000);
+  if(extra){ const q=box.querySelector('.extra'); extra.forEach(([l,fn])=>{ const b=document.createElement('button'); b.textContent=l; let n=0; b.onclick=async()=>{ n++; b.textContent=l+(n>1?' ×'+n:' ✓'); await fn(); arm(6000); }; q.appendChild(b); }); }
+  $('#toast').hidden=false; arm(quick||extra?9000:6000);
 }
 
 /* ---------- sheets ---------- */
@@ -955,6 +1215,12 @@ document.addEventListener('click',async e=>{
   const d=t.dataset;
   if(d.tab){ tab=d.tab; try{localStorage.setItem('tab',tab);}catch(_){} render(); window.scrollTo(0,0); return; }
   if(d.go){ tab=d.go; render(); window.scrollTo(0,0); return; }
+  if(d.sact){ if(canWrite===false) return; const k=d.k, b=bothMode?'both':k; bothMode=false; const ks=b==='both'?['a','b']:[k];
+    if(d.sact==='nurse' && ks.some(x=>timers[x])){ for(const x of ks) if(timers[x]){ stageFx(x,'rip'); timerAct('stop',x); } updateStage(); return; }
+    ks.forEach(x=>stageFx(x, d.sact==='diaper'?'spl':'rip')); if(b==='both') glance('both');
+    act(d.sact,b); updateStage(); return; }
+  if('both' in d){ bothMode=!bothMode; updateStage(); return; }
+  if(d.quick){ if(canWrite===false) return; const ids=await quickLog(d.quick,d.baby); if(ids.length) toast({msg:TYPE[d.quick]+' · '+nm(d.baby)+' · '+hhmm(Date.now()), undo:()=>removeEvents(ids)}); return; }
   if(d.act){ if(canWrite===false) return; act(d.act,d.baby); return; }
   if(d.tact){ timerAct(d.tact,d.baby); return; }
   if(d.off!=null){ offsetMin=+d.off; render(); return; }
