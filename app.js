@@ -248,6 +248,7 @@ function syncDrops(){
   st.league={ people:ids.map(id=>whoTxt(id)||'הורה'), rows:[['חיתולים',e=>e.type==='diaper'],['האכלות בלילה',e=>e.type==='feed'&&deepNight(e.t)],['הרדמות',e=>e.type==='sleep']].map(([l,f])=>[l, ids.map(id=>wk.filter(e=>e.by===id&&f(e)).length)]) };
   if(ids.length) resolveNames(ids);
   const {al,due}=nowAlerts();
+  if(cfg.routineSync){ const hint=syncHint(); if(hint) al.push({lvl:'warn', txt:hint.replace(/<[^>]+>/g,''), home:true}); }
   st.alerts=[...al.map(a=>({lvl:a.lvl, txt:a.txt, note:a.lvl==='urgent'||a.home?'':'התראה בלבד, לא אבחנה. כדאי לאשר את הספים מול רופא הילדים.'})),
     ...due.map(d=>({lvl:'warn', txt:`${d.m.name} ל${nm(d.k)}: ${d.last?'ניתן לאחרונה '+ago(d.last.t):'עוד לא ניתן'}`, note:'הקשה לסימון "ניתן"', go:'health'}))];
   window.Drops.sync(st);
@@ -295,6 +296,22 @@ function sumCards(from,to){
   return h;
 }
 
+function itemHtml(e){
+  const who=whoTxt(e.by);
+  return `<button class="item" data-id="${e.id}"><span class="time tn">${hhmm(e.t)}</span>
+    <span class="what"><b>${label(e)}</b><span class="sub tn">${esc([summary(e),who].filter(Boolean).join(' · '))}</span></span>
+    <span class="tag ${e.baby}">${esc(nm(e.baby))}</span></button>`;
+}
+function syncHint(){
+  const now=Date.now();
+  for(const [k,o] of [['a','b'],['b','a']]){
+    const fk=lastOf(k,'feed'); const fo=lastOf(o,'feed');
+    const kFeeding = timers[k] || (fk && now-fk.t<20*M);
+    if(kFeeding && !timers[o] && (!fo || now-fo.t>2*H) && openSleep(o))
+      return `<b>סנכרון שגרות:</b> ${esc(nm(k))} אוכל/ת עכשיו, ו${esc(nm(o))} לא אכל/ה ${fo?dur(now-fo.t):'מאז תחילת הרישום'}. אפשר להעיר להאכלה משותפת.`;
+  }
+  return '';
+}
 /* ---------- picture vocabulary shared by the journal, summary and edit sheets ---------- */
 const PIC = {
   bottle:'<path d="M9 2.5h6M10 2.5v2.8L7.8 8.2V19a2.5 2.5 0 0 0 2.5 2.5h3.4A2.5 2.5 0 0 0 16.2 19V8.2L14 5.3V2.5"/><path d="M7.8 12.5h8.4"/>',
