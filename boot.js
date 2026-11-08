@@ -177,6 +177,6 @@ onAuthStateChanged(auth, async u => {
   fire(setDoc(fdoc(fs, 'people/' + u.uid), { name: u.displayName || '', email: (u.email || '').toLowerCase(), seen: Date.now() }));
   started = true;
   $('#gate').hidden = true; $('#appRoot').hidden = false;
-  const s = document.createElement('script'); s.src = 'app.js?v=15'; document.body.appendChild(s);
+  const s = document.createElement('script'); s.src = 'app.js?v=16'; document.body.appendChild(s);
   isSupported().then(ok => { if (ok) onMessage(getMessaging(fbApp), p => window.dispatchEvent(new CustomEvent('tt-push', { detail: p.notification || {} }))); }).catch(() => {});
 });

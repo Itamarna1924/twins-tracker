@@ -89,5 +89,5 @@ window.TT = { role: () => 'owner', email: () => 'מצב הדגמה', signOut: ()
   pushStatus: () => 'unsupported', enablePush: async () => { throw new Error('unsupported'); }, getMembers: async () => ({ owner: '', editors: [], viewers: [] }), setMembers: async () => {} };
 document.getElementById('gate')?.setAttribute('hidden', '');
 document.getElementById('appRoot')?.removeAttribute('hidden');
-const s = document.createElement('script'); s.src = 'app.js?v=15'; document.body.appendChild(s);
+const s = document.createElement('script'); s.src = 'app.js?v=16'; document.body.appendChild(s);
 })();

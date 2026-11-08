@@ -140,3 +140,4 @@
 @media (max-height:900px){ .drops .act{min-height:58px} .drops .act svg{width:26px;height:26px} .drops .half{gap:8px;padding-top:10px} .drops .big .t{font-size:30px} }
 .drops .stage,.drops .ctl{flex-shrink:0}
 .drops .stage{flex:1 0 150px}
+.drops{scrollbar-width:none} .drops::-webkit-scrollbar{display:none}
