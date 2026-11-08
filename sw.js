@@ -5,7 +5,7 @@ importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js
 firebase.initializeApp(self.FIREBASE_CONFIG);
 firebase.messaging(); // notification payloads are shown automatically while the app is in the background
 
-const CACHE='tt-v13';
+const CACHE='tt-v14';
 const SHELL = ['./', './index.html', './style.css', './app.js', './drops.js', './drops.css', './boot.js', './config.js', './manifest.webmanifest', './icons/drops-192.png', './icons/drops-512.png'];
 const FB = 'https://www.gstatic.com/firebasejs/10.12.2/';
 
@@ -26,8 +26,8 @@ self.addEventListener('fetch', e => {
     return;
   }
   // App files: network first so updates arrive, cache when offline.
-  e.respondWith(fetch(req).then(res => { if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); } return res; })
-    .catch(() => caches.match(req).then(hit => hit || caches.match('./index.html'))));
+  e.respondWith(fetch(req, { cache: 'no-cache' }).then(res => { if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); } return res; })
+    .catch(() => caches.match(req, { ignoreSearch: true }).then(hit => hit || caches.match('./index.html'))));
 });
 self.addEventListener('notificationclick', e => {
   e.notification.close();
