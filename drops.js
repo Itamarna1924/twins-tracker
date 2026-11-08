@@ -337,7 +337,7 @@ function half(k){
   const top = s.nurse
     ? `<div class="nm">${esc(s.name)}</div><div class="big"><span class="t">${clk(now-s.nurse.t)}</span><span class="l">הנקה · ${s.nurse.side==='L'?'שמאל':'ימין'}</span></div>
        <div class="nurse-ctl"><button data-swap="${k}" ${dis}>${ico('swap','style="width:18px;height:18px;vertical-align:-4px"')} צד</button><button data-stop="${k}" ${dis}>סיום</button></div>`
-    : `<div class="nm">${esc(s.name)}</div><div class="big"><span class="t">${sinceFeed==null?'—':hm(sinceFeed)}</span><span class="l">מהאכלה${s.next?' · הבא '+(s.next==='L'?'שמאל':'ימין'):''}</span></div>
+    : `<div class="nm">${esc(s.name)}</div><div class="big"><span class="t">${sinceFeed==null?'—':hm(sinceFeed)}</span><span class="l">מהאכלה</span></div>
        <div class="tube" role="img" aria-label="${sinceFeed==null?'אין האכלה רשומה':hm(sinceFeed)+' מאז האכלה'}"><i style="width:${(frac*100).toFixed(1)}%"></i></div>
        <div class="chips">${sleepChip}<span class="chip ${dLate?'warn':''}">${ico('diaper')}${s.diaper?hm(now-s.diaper):'—'}</span></div>`;
   const acts=[['feed','bottle','האכלה'],['nurse','nurse',s.nurse?'בהנקה':'הנקה'],['diaper','diaper','חיתול'],['sleep',s.sleep?'sun':'moon',s.sleep?g(k,'קם','קמה'):'שינה']];

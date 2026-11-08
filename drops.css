@@ -130,3 +130,11 @@
 .drops .al.sum b{font-family:var(--display);font-weight:600}
 .drops .al.less{text-align:center;color:var(--muted);box-shadow:none;background:transparent;padding:4px}
 .drops .stage{min-height:200px}
+
+/* keep each twin's half compact so both rows of buttons always fit above the tabs */
+.drops .chips{flex-wrap:nowrap;gap:5px}
+.drops .chip{padding:4px 8px 4px 7px;font-size:13px;flex:0 1 auto;min-width:0}
+.drops .big{flex-wrap:nowrap;white-space:nowrap}
+.drops .big .l{overflow:hidden;text-overflow:ellipsis}
+.drops .stage{min-height:150px}
+@media (max-height:900px){ .drops .act{min-height:58px} .drops .act svg{width:26px;height:26px} .drops .half{gap:8px;padding-top:10px} .drops .big .t{font-size:30px} }
