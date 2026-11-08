@@ -392,3 +392,27 @@ svg.pic{flex:none}
 .wb.a em{color:#155BB5} .wb.b em{color:#C2382C}
 .legend .lg{display:inline-block;width:12px;height:12px;border-radius:6px;vertical-align:middle}
 .lg.a{background:#2F8BEA} .lg.b{background:#F2604E}
+
+/* ---------- on a computer: the app stays a phone-shaped column, the brand fills the side ---------- */
+.deskside{display:none}
+@media (min-width:760px){
+  :root{--col:440px}
+  html{min-height:100%;background:radial-gradient(900px 700px at 80% 15%,#FFE3D6 0%,transparent 60%),radial-gradient(900px 700px at 15% 90%,#DCEEFF 0%,transparent 60%),linear-gradient(160deg,#FFF4EA,#FDEAF2) fixed}
+  body{background:transparent}
+  #appRoot::before{content:"";position:fixed;top:0;bottom:0;left:50%;width:var(--col);transform:translateX(-50%);background:var(--bg);box-shadow:0 0 0 1px var(--line),0 30px 80px rgba(34,32,58,.12);z-index:-1}
+  .wrap{max-width:var(--col);padding-inline:16px;box-sizing:border-box}
+  .wrap>header{margin-inline:-16px;padding-inline:14px}
+  body{padding-inline:0}
+  nav.tabs{left:50%;right:auto;width:var(--col);transform:translateX(-50%)}
+  #dropsRoot.drops{width:var(--col)}
+  .sheet{max-width:var(--col)}
+  #freeForm{left:50%;right:auto;width:var(--col);transform:translateX(-50%)}
+  .toast{left:50%;right:auto;width:var(--col);transform:translateX(-50%)}
+}
+@media (min-width:1100px){
+  .deskside{display:flex;flex-direction:column;gap:18px;position:fixed;top:50%;transform:translateY(-50%);right:calc(50% + var(--col)/2 + 64px);width:min(440px,calc(50vw - var(--col)/2 - 110px));z-index:1;color:var(--fg)}
+  .deskside svg{width:150px;height:116px}
+  .deskside h2{margin:0;font-family:var(--display);font-weight:600;font-size:clamp(34px,3.2vw,52px);line-height:1.05}
+  .deskside p{margin:0;font-size:19px;line-height:1.55;color:var(--muted)}
+}
+@media (min-width:760px) and (max-height:760px){ .drops .stage{min-height:170px} }

@@ -346,7 +346,11 @@ function half(k){
 function renderCtl(){ K.forEach(half); $('#ctl').classList.toggle('both',both); $('#bothBtn').setAttribute('aria-pressed',both); $('#bothBtn').disabled=!canWrite; }
 function renderAlerts(){
   const box=$('#dAlerts');
-  box.innerHTML=alerts.map((a,i)=>`<div class="al ${a.lvl}" role="${a.lvl==='urgent'?'alert':'status'}" ${a.go?`data-go="${a.go}" style="cursor:pointer"`:''}>${esc(a.txt)}${a.note?`<small>${esc(a.note)}</small>`:''}</div>`).join('');
+  const one=a=>`<div class="al ${a.lvl}" role="${a.lvl==='urgent'?'alert':'status'}" ${a.go?`data-go="${a.go}" style="cursor:pointer"`:''}>${esc(a.txt)}${a.note?`<small>${esc(a.note)}</small>`:''}</div>`;
+  const urgent=alerts.filter(a=>a.lvl==='urgent'), rest=alerts.filter(a=>a.lvl!=='urgent'), open=box.classList.contains('open');
+  box.innerHTML=urgent.map(one).join('') + (rest.length>1 && !open
+    ? `<div class="al sum" role="status" aria-expanded="false"><b>${rest.length} תזכורות</b> · ${esc(rest[0].txt)}</div>`
+    : rest.map(one).join('') + (rest.length>1?'<div class="al sum less" aria-expanded="true">הסתרה</div>':''));
   box.hidden=!alerts.length;
 }
 setInterval(()=>{ if(!visible()) return; if(!sheetOpen) renderCtl(); K.forEach(k=>{ cryLoop(k); leakLoop(k); if(!isBusy(k)) rest(k); }); },1000);
@@ -522,7 +526,7 @@ function openLead(){
 /* ---------- wiring ---------- */
 root.addEventListener('click',e=>{
   e.stopPropagation();
-  const al=e.target.closest('.al'); if(al && !al.dataset.go){ $('#dAlerts').classList.toggle('open'); return; }
+  const al=e.target.closest('.al'); if(al && !al.dataset.go){ $('#dAlerts').classList.toggle('open'); renderAlerts(); return; }
   const b=e.target.closest('button,[data-go]'); if(!b || b.closest('#dSheet')) return;
   if(b.dataset.go){ api.go(b.dataset.go); return; }
   if(b.dataset.act){ doAct(b.dataset.act,b.dataset.k); return; }

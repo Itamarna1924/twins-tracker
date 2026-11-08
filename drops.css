@@ -126,3 +126,7 @@
 .drops .tiles{grid-template-columns:repeat(var(--n,3),minmax(0,1fr))}
 .drops .dsheet,.drops .stage{user-select:none;-webkit-user-select:none}
 .drops #dBtl:focus{outline:none} .drops #dBtl:focus-visible{outline:3px solid var(--ink);outline-offset:4px;border-radius:12px}
+.drops .al.sum{box-shadow:inset 0 0 0 1.5px #F0B35B;background:#FFF9EF}
+.drops .al.sum b{font-family:var(--display);font-weight:600}
+.drops .al.less{text-align:center;color:var(--muted);box-shadow:none;background:transparent;padding:4px}
+.drops .stage{min-height:200px}
